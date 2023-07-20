@@ -155,3 +155,9 @@ unset __conda_setup
 
 export PYENV_ROOT="$HOME/.pyenv"
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/viktor.jensen-torp/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/viktor.jensen-torp/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/viktor.jensen-torp/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/viktor.jensen-torp/google-cloud-sdk/completion.zsh.inc'; fi

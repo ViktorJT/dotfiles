@@ -41,24 +41,27 @@ require('packer').startup(function(use)
 
       -- Snippets
       { 'L3MON4D3/LuaSnip' },
+
       -- Snippet Collection (Optional)
       { 'rafamadriz/friendly-snippets' },
     }
   }
 
-  use 'j-hui/fidget.nvim' -- UI for nvim-lsp progress
+  use { 'jose-elias-alvarez/null-ls.nvim' } -- Hook into LSP to provide additional features
 
-  use "windwp/nvim-ts-autotag" -- Autopair Html tags
-  use "windwp/nvim-autopairs" -- Autopair brackets, etc.
+  use 'j-hui/fidget.nvim'                   -- UI for nvim-lsp progress
 
-  use 'norcalli/nvim-colorizer.lua' -- Colorize color codes in buffers
+  use "windwp/nvim-ts-autotag"              -- Autopair Html tags
+  use "windwp/nvim-autopairs"               -- Autopair brackets, etc.
+
+  use 'norcalli/nvim-colorizer.lua'         -- Colorize color codes in buffers
 
   use {
     'nvim-tree/nvim-tree.lua',
     requires = {
       'nvim-tree/nvim-web-devicons', -- optional, for file icons
     },
-    tag = 'nightly' -- optional, updated every week. (see issue #1193)
+    tag = 'nightly'                  -- optional, updated every week. (see issue #1193)
   }
 
   -- Git related plugins
@@ -66,14 +69,13 @@ require('packer').startup(function(use)
   use 'tpope/vim-rhubarb'
   use 'lewis6991/gitsigns.nvim'
 
-  use 'shaunsingh/nord.nvim' -- Nord Theme
-  use 'nvim-lualine/lualine.nvim' -- Fancier statusline
+  use 'shaunsingh/nord.nvim'                -- Nord Theme
+  use 'nvim-lualine/lualine.nvim'           -- Fancier statusline
   use 'lukas-reineke/indent-blankline.nvim' -- Add indentation guides even on blank lines
 
-  -- !! REMOVE 'JSX' BRANCH AFTER JSX COMMENTING MERGED
-  use { 'numToStr/Comment.nvim', branch = "jsx" } -- "gc" to comment visual regions/lines
+  use 'numToStr/Comment.nvim'               -- "gc" to comment visual regions/lines
 
-  use 'tpope/vim-sleuth' -- Detect tabstop and shiftwidth automatically
+  use 'tpope/vim-sleuth'                    -- Detect tabstop and shiftwidth automatically
 
   -- Fuzzy Finder (files, lsp, etc)
   use { 'nvim-telescope/telescope.nvim', branch = '0.1.x',
