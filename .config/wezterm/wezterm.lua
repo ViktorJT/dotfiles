@@ -46,6 +46,11 @@ return {
             action = act.SplitHorizontal { domain = 'CurrentPaneDomain' },
         },
         {
+            key = 'd',
+            mods = 'CMD|SHIFT',
+            action = act.SplitVertical { domain = 'CurrentPaneDomain' },
+        },
+        {
             key = 'w',
             mods = 'CMD',
             action = act.CloseCurrentPane { confirm = false },

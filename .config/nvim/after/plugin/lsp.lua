@@ -36,6 +36,7 @@ lsp.setup_nvim_cmp({
     mapping = cmp_mappings
 })
 
+--[[
 vim.api.nvim_create_augroup('AutoFormatting', {})
 vim.api.nvim_create_autocmd('BufWritePre', {
     group = 'AutoFormatting',
@@ -43,6 +44,8 @@ vim.api.nvim_create_autocmd('BufWritePre', {
         vim.lsp.buf.format()
     end,
 })
+]]
+--
 
 lsp.on_attach(function(client, bufnr)
     local opts = { buffer = bufnr, remap = false }
