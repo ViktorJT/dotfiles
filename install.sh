@@ -66,6 +66,8 @@ do
     break
 done
 
+git config --global user.name "Viktor Jensen-Torp"
+git config --global user.email "v.jensentorp@gmail.com"
 
 # Set zsh as default shell
 sudo chsh -s $(which zsh) $(whoami)
