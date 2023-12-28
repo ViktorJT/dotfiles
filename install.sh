@@ -15,21 +15,27 @@ do
             # Install pyenv
 
             # MacOS
-            brew install pyenv
+            # brew install pyenv
 
             # Ubuntu 
-            curl https://pyenv.run | bash
+            # curl https://pyenv.run | bash
 
             # Install latest python 3 version
-            pyenv install 3:latest
+            # pyenv install 3:latest
             
             break
             ;;
         "Server")
             echo "Installing server stuff with yum..."
             # Add installation commands here
-            sudo yum update
+            sudo yum update -y
             sudo yum install zsh -y
+
+            # if chsh (change shell) isn't available: install util-linux-user which has it
+            if ! command -v chsh &> /dev/null
+            then
+                sudo yum install util-linux-user -y
+            fi
 
             break
             ;;
@@ -38,10 +44,16 @@ do
     break
 done
 
-# Install zsh
+# Check if Zsh is installed successfully
+if [ -f /bin/zsh ] || [ -f /usr/bin/zsh ]; then
+    echo "Zsh successfully installed"
+else
+    echo "Zsh installation failed"
+    exit 1
+fi
 
 # Set zsh as default shell
-chsh -s $(which zsh)
+sudo chsh -s $(which zsh) $(whoami)
 
 # Install oh-my-zsh
 sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
