@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "What are you bootstrapping?"
+echo "What are you bootstrapping? (Type number)"
 options=("Personal machine" "Server")
 
 select opt in "${options[@]}"
@@ -10,7 +10,18 @@ do
             echo "Installing everything with apt..."
             # Add installation commands here
             sudo apt update
-            sudo apt install zsh -y
+
+            # Check if Zsh is installed
+            if [ -f /bin/zsh ] || [ -f /usr/bin/zsh ]; then
+                echo "Zsh already installed"
+            else
+                echo "Installing Zsh"
+                sudo apt install zsh -y
+                exit 1
+            fi
+            
+            # Install git
+            sudo apt install git -y
 
             # Install pyenv
 
@@ -29,7 +40,18 @@ do
             echo "Installing server stuff with yum..."
             # Add installation commands here
             sudo yum update -y
-            sudo yum install zsh -y
+
+            # Check if Zsh is installed
+            if [ -f /bin/zsh ] || [ -f /usr/bin/zsh ]; then
+                echo "Zsh already installed"
+            else
+                echo "Installing Zsh"
+                sudo yum install zsh -y
+                exit 1
+            fi
+
+            # Install git
+            sudo yum install git -y
 
             # if chsh (change shell) isn't available: install util-linux-user which has it
             if ! command -v chsh &> /dev/null
@@ -44,13 +66,6 @@ do
     break
 done
 
-# Check if Zsh is installed successfully
-if [ -f /bin/zsh ] || [ -f /usr/bin/zsh ]; then
-    echo "Zsh successfully installed"
-else
-    echo "Zsh installation failed"
-    exit 1
-fi
 
 # Set zsh as default shell
 sudo chsh -s $(which zsh) $(whoami)
