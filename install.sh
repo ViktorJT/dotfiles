@@ -77,6 +77,7 @@ sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/maste
 
 # Install starship prompt
 sudo sh -c "$(curl -fsSL https://starship.rs/install.sh)"
+echo '\neval "$(starship init bash)"' >> .bashrc
 
 # Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
