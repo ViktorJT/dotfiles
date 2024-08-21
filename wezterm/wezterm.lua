@@ -3,30 +3,36 @@ local act = wezterm.action
 
 -- Set default padding
 local default_padding = {
-  left = 8, right = 8, top = 8, bottom = 8
+	left = 8,
+	right = 8,
+	top = 8,
+	bottom = 8,
 }
 
 -- Set padding for Neovim (i.e., no padding)
 local nvim_padding = {
-  left = 0, right = 0, top = 0, bottom = 0
+	left = 0,
+	right = 0,
+	top = 0,
+	bottom = 0,
 }
 
-wezterm.on('update-right-status', function(window, pane)
-  -- Get the current process name
-  local process_name = pane:get_foreground_process_name()
+wezterm.on("update-right-status", function(window, pane)
+	-- Get the current process name
+	local process_name = pane:get_foreground_process_name()
 
-  -- Check if Neovim is running in the active pane
-  if process_name and process_name:find('nvim') then
-    -- Remove padding when Neovim is detected
-    window:set_config_overrides({
-      window_padding = nvim_padding
-    })
-  else
-    -- Restore default padding when not in Neovim
-    window:set_config_overrides({
-      window_padding = default_padding
-    })
-  end
+	-- Check if Neovim is running in the active pane
+	if process_name and process_name:find("nvim") then
+		-- Remove padding when Neovim is detected
+		window:set_config_overrides({
+			window_padding = nvim_padding,
+		})
+	else
+		-- Restore default padding when not in Neovim
+		window:set_config_overrides({
+			window_padding = default_padding,
+		})
+	end
 end)
 
 return {
@@ -42,8 +48,10 @@ return {
 	native_macos_fullscreen_mode = true,
 
 	window_padding = {
-	    left = 0, right = 0,
-	    top = 0, bottom = 0,
+		left = 0,
+		right = 0,
+		top = 0,
+		bottom = 0,
 	},
 
 	inactive_pane_hsb = {
