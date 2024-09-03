@@ -32,4 +32,9 @@ return {
     "williamboman/mason.nvim",
     opts = require "configs.mason",
   },
+
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = require "configs.gitsigns",
+  },
 }
