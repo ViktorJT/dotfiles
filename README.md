@@ -8,7 +8,7 @@ curl -s https://gist.githubusercontent.com/ViktorJT/d1d7d488057827ab16af656ce828
 
 # Export
 
-Follow these steps if you plan to export settings:
+Follow these steps to export settings:
 
 1. Export custom mac keyboard shortcuts
 ```bash
@@ -20,4 +20,4 @@ defaults export com.apple.symbolichotkeys - > $HOME/Code/Configs/macos-keyboard-
 Raycast Settings > Advanced > Import / Export > Export
 ```
 
-3. Push changes to this repo
+3. Push changes to Config repo
