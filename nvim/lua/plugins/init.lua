@@ -38,3 +38,4 @@ return {
     opts = require "configs.gitsigns",
   },
 }
+

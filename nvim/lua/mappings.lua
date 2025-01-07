@@ -19,3 +19,4 @@ map("i", "<C-s>", "<Esc>:w<CR>", { desc = "Save file in insert mode" })
 
 map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move line down" })
 map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move line up" })
+

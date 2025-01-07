@@ -4,6 +4,7 @@ local opts = {
     "lua",
     "html",
     "css",
+    "vue",
     "svelte",
     "javascript",
     "typescript",
@@ -11,7 +12,9 @@ local opts = {
     "json",
     "markdown",
     "markdown_inline",
+    "vimdoc",
   },
 }
 
 return opts
+

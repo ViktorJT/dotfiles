@@ -91,5 +91,29 @@ return {
 			mods = "CMD",
 			action = act.CloseCurrentPane({ confirm = false }),
 		},
+
+		-- Conform to Mac shortcuts for text navigation ([forward | backward] [word | line])
+		-- There are better ways to do this, see copyMode in Wezterm docs
+		{
+			key = "LeftArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bb" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bf" }),
+		},
+
+		{
+			key = "LeftArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOH" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOF" }),
+		},
 	},
 }

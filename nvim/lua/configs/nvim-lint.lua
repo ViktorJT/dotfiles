@@ -26,6 +26,11 @@ local opts = {
       "eslint_d",
       "eslint",
     },
+
+    vue = {
+      "eslint_d",
+      "eslint",
+    },
   },
 }
 

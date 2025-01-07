@@ -9,14 +9,10 @@ local opts = {
     "html-lsp",
     "typescript-language-server",
     "tailwindcss-language-server",
-    "deno",
     "prettier",
     "prettierd",
     "eslint-lsp",
     "eslint_d",
-
-    -- svelte
-    "svelte-language-server",
   },
 }
 

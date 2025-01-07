@@ -2,6 +2,8 @@ local options = {
   formatters_by_ft = {
     lua = { "stylua" },
 
+    vue = { "prettierd", "prettier", stop_after_first = true },
+
     javascript = { "prettierd", "prettier", stop_after_first = true },
     javascriptreact = { "prettierd", "prettier", stop_after_first = true },
     ["javascript.jsx"] = { "prettierd", "prettier", stop_after_first = true },
