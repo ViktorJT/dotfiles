@@ -3,38 +3,39 @@ local opts = {
   linters_by_ft = {
     javascript = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
     javascriptreact = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
     ["javascript.jsx"] = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
 
     typescript = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
     typescriptreact = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
     ["typescript.tsx"] = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
 
     vue = {
       "eslint_d",
-      "eslint",
+      -- "eslint",
     },
   },
 }
 
 return opts
+
 -- local lint = require "lint"
 -- local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
 --
