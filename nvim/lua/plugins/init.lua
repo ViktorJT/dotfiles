@@ -6,17 +6,9 @@ return {
   },
 
   {
-    "JoosepAlviste/nvim-ts-context-commentstring",
-    lazy = false, -- don't lazy load, necessary for Comment.nvim
-    config = require "configs.commentstring",
-  },
-
-  {
-    "numToStr/Comment.nvim",
-    dependencies = "nvim-ts-context-commentstring",
-    config = function()
-      require("configs.comment").setup()
-    end,
+    "folke/ts-comments.nvim",
+    event = "VeryLazy",
+    opts = {},
   },
 
   {
