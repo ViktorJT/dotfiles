@@ -2,15 +2,50 @@ local options = {
   formatters_by_ft = {
     lua = { "stylua" },
 
-    vue = { "prettierd", "prettier", stop_after_first = true },
+    vue = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
 
-    javascript = { "prettierd", "prettier", stop_after_first = true },
-    javascriptreact = { "prettierd", "prettier", stop_after_first = true },
-    ["javascript.jsx"] = { "prettierd", "prettier", stop_after_first = true },
+    javascript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    javascriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["javascript.jsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
 
-    typescript = { "prettierd", "prettier", stop_after_first = true },
-    typescriptreact = { "prettierd", "prettier", stop_after_first = true },
-    ["typescript.tsx"] = { "prettierd", "prettier", stop_after_first = true },
+    typescript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    typescriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["typescript.tsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
 
     css = { "prettierd", "prettier", stop_after_first = true },
     html = { "prettierd", "prettier", stop_after_first = true },
