@@ -17,3 +17,7 @@ map("i", "<C-s>", "<Esc>:w<CR>", { desc = "Save file in insert mode" })
 
 map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move line down" })
 map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move line up" })
+
+-- Disable default terminal mapping
+map("n", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+map("t", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })

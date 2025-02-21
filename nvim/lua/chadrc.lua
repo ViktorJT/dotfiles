@@ -44,9 +44,9 @@ M.ui = {
     enabled = false,
   },
 
-  term = {
-    enabled = false,
-  },
+  -- term = {
+  -- enabled = false,
+  -- },
 }
 
 return M

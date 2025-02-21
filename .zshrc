@@ -284,3 +284,4 @@ if [ -f '/Users/viktor/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/viktor/g
 
 # The next line enables shell command completion for gcloud.
 if [ -f '/Users/viktor/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/viktor/google-cloud-sdk/completion.zsh.inc'; fi
+alias pip="python3 -m pip"
