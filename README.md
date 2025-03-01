@@ -2,7 +2,7 @@
 
 Run the Gist, enter password, tap a few buttons, then voilà: mac is set up.
 ```bash
-curl -s https://gist.githubusercontent.com/ViktorJT/d1d7d488057827ab16af656ce828b166/raw/install.sh | bash
+curl -s https://gist.githubusercontent.com/ViktorJT/d1d7d488057827ab16af656ce828b166/raw/macbook-install.sh | bash
 ```
 
 
