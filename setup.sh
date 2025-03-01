@@ -107,7 +107,7 @@ read -p "Enter your dotfiles repository URL (Press Enter for default: $default_r
 dotfiles_repo=${dotfiles_repo:-$default_repo}  # Use input if provided, otherwise use default
 
 echo "⚙ Initializing ChezMoi..."
-chezmoi init "$dotfiles_repo"
+chezmoi init "$dotfiles_repo" --ssh
 
 echo "🎨 Applying dotfiles..."
 chezmoi apply
