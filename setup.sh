@@ -18,7 +18,7 @@
 '
 
 # Define base URL for raw script downloads
-SCRIPTS_URL="https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts"
+SCRIPTS_URL="https://raw.githubusercontent.com/ViktorJT/dotfiles/main"
 
 # Create temporary directory for scripts
 TEMP_DIR=$(mktemp -d)
