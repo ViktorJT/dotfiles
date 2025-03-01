@@ -1,0 +1,8 @@
+README.md
+.gitignore
+docker/
+docker-compose.yml
+Dockerfile
+setup.sh
+LICENSE
+.github/
