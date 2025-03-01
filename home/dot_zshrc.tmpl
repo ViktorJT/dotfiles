@@ -1,0 +1,79 @@
+# ~/.zshrc
+# Managed by chezmoi - templated for multiple environments
+
+# Base PATH setup
+export PATH=$PATH:/bin:/usr/bin:/usr/local/bin:$HOME/.local/bin
+
+# Oh My Zsh configuration
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="nord-extended/nord"
+
+# Initialize plugins array
+plugins=()
+
+# Function to source files if they exist
+source_if_exists() {
+  if [ -f "$1" ]; then
+    source "$1"
+  fi
+}
+
+# Get the source directory (repository root)
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+ENVIRONMENTS_DIR="${CHEZMOI_SOURCE_DIR}/../environments"
+
+# Source environment-specific plugins
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.plugins"
+{{- else if .data.docker }}
+DOCKER_TYPE="{{ .data.dockerType | default "dev" }}"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.plugins"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.plugins"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.plugins"
+{{- end }}
+
+# Common plugins for all environments
+plugins+=(git)
+
+# Source Oh My Zsh
+source $ZSH/oh-my-zsh.sh
+
+# Setting language environment
+export LANG=en_US.UTF-8
+
+# Source environment-specific configurations
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.configuration"
+{{- else if .data.docker }}
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.configuration"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.configuration"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.configuration"
+{{- end }}
+
+# Enable Starship prompt (common across environments)
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+
+# Source environment-specific functions
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.functions"
+{{- else if .data.docker }}
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.functions"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.functions"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.functions"
+{{- end }}
+
+# Source environment-specific aliases
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.aliases"
+{{- else if .data.docker }}
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.aliases"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.aliases"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.aliases"
+{{- end }}
+
+# Source any additional local configurations if they exist
+source_if_exists "$HOME/.zshrc.local"

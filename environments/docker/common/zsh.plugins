@@ -1,0 +1,2 @@
+# Docker-specific plugins
+plugins+=(docker)

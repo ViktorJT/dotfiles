@@ -1,8 +1,8 @@
 README.md
 .gitignore
-docker/
-docker-compose.yml
-Dockerfile
-setup.sh
 LICENSE
-.github/
+environments/**
+scripts/**
+setup.sh
+docker/**
+.github/**

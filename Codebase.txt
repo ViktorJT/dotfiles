@@ -31,7 +31,8 @@ Configs
 │   │           └── init.lua
 │   ├── wezterm
 │   │   └── wezterm.lua
-│   └── starship.toml
+│   ├── starship.toml
+│   └── dot_zshrc.tmpl
 ├── scripts
 │   ├── detect_environment.sh
 │   ├── install_dependencies.sh
@@ -46,12 +47,24 @@ Configs
     │   ├── README.md
     │   ├── ipad-host
     │   │   ├── Dockerfile
-    │   │   └── docker-compose.yml
+    │   │   ├── docker-compose.yml
+    │   │   ├── zsh.plugins
+    │   │   ├── zsh.configuration
+    │   │   ├── zsh.functions
+    │   │   └── zsh.aliases
     │   └── common
-    │       └── base-dependencies.sh
+    │       ├── base-dependencies.sh
+    │       ├── zsh.plugins
+    │       ├── zsh.configuration
+    │       ├── zsh.functions
+    │       └── zsh.aliases
     └── macos
         ├── macos-keyboard-shortcuts.xml
-        └── Raycast.rayconfig
+        ├── Raycast.rayconfig
+        ├── zsh.configuration
+        ├── zsh.plugins
+        ├── zsh.functions
+        └── zsh.aliases
 
 ```
 
@@ -992,6 +1005,91 @@ format = '[ $time ]($style)'
 
 ```
 
+`/root/Configs/home/dot_zshrc.tmpl`:
+
+```tmpl
+# ~/.zshrc
+# Managed by chezmoi - templated for multiple environments
+
+# Base PATH setup
+export PATH=$PATH:/bin:/usr/bin:/usr/local/bin:$HOME/.local/bin
+
+# Oh My Zsh configuration
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="nord-extended/nord"
+
+# Initialize plugins array
+plugins=()
+
+# Function to source files if they exist
+source_if_exists() {
+  if [ -f "$1" ]; then
+    source "$1"
+  fi
+}
+
+# Get the source directory (repository root)
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+ENVIRONMENTS_DIR="${CHEZMOI_SOURCE_DIR}/../environments"
+
+# Source environment-specific plugins
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.plugins"
+{{- else if .data.docker }}
+DOCKER_TYPE="{{ .data.dockerType | default "dev" }}"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.plugins"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.plugins"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.plugins"
+{{- end }}
+
+# Common plugins for all environments
+plugins+=(git)
+
+# Source Oh My Zsh
+source $ZSH/oh-my-zsh.sh
+
+# Setting language environment
+export LANG=en_US.UTF-8
+
+# Source environment-specific configurations
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.configuration"
+{{- else if .data.docker }}
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.configuration"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.configuration"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.configuration"
+{{- end }}
+
+# Enable Starship prompt (common across environments)
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+
+# Source environment-specific functions
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.functions"
+{{- else if .data.docker }}
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.functions"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.functions"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.functions"
+{{- end }}
+
+# Source environment-specific aliases
+{{- if .data.macos }}
+source_if_exists "${ENVIRONMENTS_DIR}/macos/zsh.aliases"
+{{- else if .data.docker }}
+source_if_exists "${ENVIRONMENTS_DIR}/docker/common/zsh.aliases"
+source_if_exists "${ENVIRONMENTS_DIR}/docker/${DOCKER_TYPE}/zsh.aliases"
+{{- else if .data.linux }}
+source_if_exists "${ENVIRONMENTS_DIR}/linux/zsh.aliases"
+{{- end }}
+
+# Source any additional local configurations if they exist
+source_if_exists "$HOME/.zshrc.local"
+
+```
+
 `/root/Configs/scripts/detect_environment.sh`:
 
 ```sh
@@ -1801,6 +1899,109 @@ services:
 
 ```
 
+`/root/Configs/environments/docker/ipad-host/zsh.plugins`:
+
+```plugins
+# iPad host specific plugins
+# No additional plugins for iPad host
+
+```
+
+`/root/Configs/environments/docker/ipad-host/zsh.configuration`:
+
+```configuration
+# iPad host specific configuration
+
+# Set environment variable to identify iPad host
+export IPAD_HOST=true
+
+# Display iPad-specific welcome message
+echo "📱 iPad Host Environment - Connected via Blink Shell"
+echo "🔍 Tip: Use two-finger tap to select and copy text"
+echo "🔍 Tip: Type 'ipad_tmux' to create an iPad-optimized tmux session"
+
+```
+
+`/root/Configs/environments/docker/ipad-host/zsh.functions`:
+
+```functions
+# iPad host specific functions
+
+# Custom function to optimize for iPad screen size
+ipad_mode() {
+  if [ "$1" = "on" ]; then
+    # Set smaller font or adjust other terminal settings if possible
+    echo "iPad mode enabled - optimizing for smaller screen"
+    export IPAD_MODE=true
+  elif [ "$1" = "off" ]; then
+    echo "iPad mode disabled"
+    export IPAD_MODE=false
+  else
+    echo "Usage: ipad_mode [on|off]"
+  fi
+}
+
+# Function to create a new tmux session with a layout optimized for iPad
+ipad_tmux() {
+  tmux new-session -d -s ipad
+  tmux split-window -h -p 50
+  tmux select-pane -t 0
+  tmux attach-session -t ipad
+}
+
+# Function to copy file content to clipboard in a way that works with Blink Shell
+copy_to_ipad() {
+  if [ -f "$1" ]; then
+    cat "$1"
+    echo "---------------------------------------------"
+    echo "👆 Select the text above and use two-finger tap to copy in Blink Shell"
+  else
+    echo "File not found: $1"
+  fi
+}
+
+# Enhanced pbcopy_files for iPad - displays content for manual copy
+ipad_copy_files() {
+  if [ -f "$1" ]; then
+    local file="$1"
+    local filename=$(basename "$file")
+    echo "---------------------------------------------"
+    echo "📄 $filename"
+    echo "---------------------------------------------"
+    cat "$file"
+    echo "---------------------------------------------"
+    echo "👆 Select the text above and use two-finger tap to copy in Blink Shell"
+  else
+    echo "File not found: $1"
+  fi
+}
+
+```
+
+`/root/Configs/environments/docker/ipad-host/zsh.aliases`:
+
+```aliases
+# iPad host specific aliases
+
+# iPad-specific aliases
+alias ipad="echo 'iPad Host Environment Active'"
+alias ipad-copy="copy_to_ipad"
+alias ipad-tmux="ipad_tmux"
+
+# Enhanced tmux commands optimized for iPad
+alias t="tmux"
+alias ta="tmux attach -t"
+alias tls="tmux list-sessions"
+alias tn="tmux new -s"
+alias tk="tmux kill-session -t"
+
+# Simplified navigation for iPad
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+
+```
+
 `/root/Configs/environments/docker/common/base-dependencies.sh`:
 
 ```sh
@@ -1844,6 +2045,120 @@ if [ "$SHELL" != "$(which zsh)" ]; then
 fi
 
 echo "✅ Common Docker dependencies configured"
+
+```
+
+`/root/Configs/environments/docker/common/zsh.plugins`:
+
+```plugins
+# Docker-specific plugins
+plugins+=(docker)
+
+```
+
+`/root/Configs/environments/docker/common/zsh.configuration`:
+
+```configuration
+# Docker environment configuration
+
+# Enable FzF in Docker
+command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
+
+# Enable NVM in Docker
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# ZSH plugins in Docker (sourced from Oh My Zsh custom plugins directory)
+source_if_exists "$ZSH/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source_if_exists "$ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Display a visual indicator that this is a Docker environment in the prompt
+export DOCKER_ENV=true
+
+# Display welcome message
+echo "🐳 Docker Environment - $(cat /etc/os-release | grep "PRETTY_NAME" | cut -d "=" -f 2 | tr -d '"' 2>/dev/null || uname -a)"
+
+```
+
+`/root/Configs/environments/docker/common/zsh.functions`:
+
+```functions
+# Docker-specific functions
+
+# Docker container helper functions
+container_stats() {
+  echo "📊 Docker Container Stats:"
+  echo "--------------------------------------"
+  echo "🖥️  CPU: $(cat /sys/fs/cgroup/cpu.stat 2>/dev/null || echo 'N/A')"
+  echo "🧠 Memory: $(free -h | grep Mem | awk '{print $3 " used of " $2 " total"}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "--------------------------------------"
+}
+
+# Add automatic stats when starting a new shell
+container_stats
+
+# Docker image management
+cleanup_images() {
+  echo "Cleaning up unused Docker images..."
+  docker image prune -f
+  echo "Done!"
+}
+
+# Docker volume management
+cleanup_volumes() {
+  echo "Cleaning up unused Docker volumes..."
+  docker volume prune -f
+  echo "Done!"
+}
+
+# Docker complete cleanup
+cleanup_docker() {
+  echo "Performing complete Docker cleanup..."
+  docker system prune -f
+  echo "Done!"
+}
+
+```
+
+`/root/Configs/environments/docker/common/zsh.aliases`:
+
+```aliases
+# Docker-specific aliases
+
+# Docker-specific aliases
+alias dc="docker compose"
+alias dps="docker ps"
+alias dex="docker exec -it"
+alias dlog="docker logs"
+
+# Development helpers
+alias edit="chezmoi edit"
+alias apply="chezmoi apply"
+alias update="chezmoi update"
+
+# Navigation shortcuts
+alias p="cd /projects"
+alias r="cd /root"
+
+# Improved ls commands
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+else
+  alias ls="ls --color=auto"
+  alias ll="ls -la"
+fi
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
 
 ```
 
@@ -2035,5 +2350,247 @@ echo "✅ Common Docker dependencies configured"
 	</dict>
 </dict>
 </plist>
+
+```
+
+`/root/Configs/environments/macos/zsh.configuration`:
+
+```configuration
+# macOS-specific configuration
+
+# Homebrew configuration
+export HOMEBREW_PREFIX="{{ .chezmoi.homeDir }}/homebrew"
+if [ -d "/opt/homebrew" ]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [ -d "/usr/local" ]; then
+  export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Enable FzF (macOS Homebrew installation)
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+fi
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+fi
+
+# Enable NVM (macOS Homebrew installation)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# Enable ZSH Autosuggestions plugin via Homebrew
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Google Cloud SDK setup (macOS specific)
+source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
+source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
+
+# Display welcome message
+echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"
+
+```
+
+`/root/Configs/environments/macos/zsh.plugins`:
+
+```plugins
+# macOS-specific plugins
+plugins+=(brew macos)
+
+```
+
+`/root/Configs/environments/macos/zsh.functions`:
+
+```functions
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}
+
+# pbcopy_files function (macOS specific)
+pbcopy_files() {
+  setopt nullglob  # Allow wildcards with no matches
+
+  local save_to_folder=false
+  local output_folder="pbcopy_files_output"
+  local target_path=""
+  local processed_count=0
+  local root_folder=$(basename "$(pwd)")
+  export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+  # Parse command line options
+  while getopts ":s" opt; do
+    case ${opt} in
+      s ) save_to_folder=true ;;
+      \? ) echo "\033[1;31mError: Invalid option: -$OPTARG\033[0m" >&2; return 1 ;;
+    esac
+  done
+  shift $((OPTIND -1))
+
+  # Check if a target path is provided
+  if [ $# -eq 0 ]; then
+    echo "\033[1;31mError: No target path provided.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  target_path="$1"
+  local base_path=$(pwd)  # Get the current working directory (root path)
+
+  # Function to determine the correct comment style based on file extension
+  get_comment_style() {
+    local filename="$1"
+    case "$filename" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) echo "//" ;;
+      *.css|*.html) echo "/* */" ;;
+      *.lua) echo "--" ;;
+      *.py|*.rb|*.sh|*.zsh|*.bash|*.ksh) echo "#" ;;
+      *.c|*.cpp|*.h|*.hpp|*.java|*.go|*.swift) echo "//" ;;
+      *) echo "/* */" ;;
+    esac
+  }
+
+  # Function to sanitize file path for use as a filename
+  sanitize_path() {
+    echo "$1" | sed "s|^\./||" | sed "s|/|>|g"
+  }
+
+  # Process an individual file
+  process_file() {
+    local file="$1"
+    local comment_style=$(get_comment_style "$file")
+    local relative_path="${file#$base_path/}"
+
+    # Determine if it's a block comment style (like /* ... */)
+    if [[ "$comment_style" == "/* */" ]]; then
+      local content="/* Current file: $relative_path */\n$(cat "$file")"
+    else
+      local content="$comment_style Current file: $relative_path\n$(cat "$file")"
+    fi
+
+    if $save_to_folder; then
+      local sanitized_path="${root_folder}>$(sanitize_path "$relative_path")"
+      echo -e "$content" > "$output_folder/$sanitized_path"
+    else
+      echo -e "$content" | pbcopy
+    fi
+
+    ((processed_count++))
+  }
+
+  # Process a folder recursively
+  process_files() {
+    local dir="$1"
+
+    for file in "$dir"/*; do
+      if [ -f "$file" ]; then
+        local relative_path="${file#$base_path/}"
+        echo -n "Process $relative_path? (Enter/s/q): "
+        read -k 1 user_input
+        echo
+        case $user_input in
+          s|S) echo "Skipped." ;;
+          q|Q) echo "Quitting..."; return ;;
+          *) process_file "$file" ;;
+        esac
+      elif [ -d "$file" ]; then
+        process_files "$file"
+      fi
+    done
+  }
+
+  # Create or clear output folder if saving to folder
+  if $save_to_folder; then
+    if [ -d "$output_folder" ]; then
+      echo "Removing existing output folder..."
+      rm -rf "$output_folder"
+    fi
+    mkdir -p "$output_folder"
+    echo "Created fresh output folder: $output_folder"
+  fi
+
+  # Process the target path
+  if [ -f "$target_path" ]; then
+    process_file "$target_path"
+  elif [ -d "$target_path" ]; then
+    process_files "$target_path"
+  else
+    echo "\033[1;31mError: $target_path is not a valid file or folder.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  # Print summary
+  if $save_to_folder; then
+    echo "Saved $processed_count file(s) to $output_folder/"
+  else
+    echo "Copied $processed_count file(s) to clipboard."
+  fi
+}
+
+```
+
+`/root/Configs/environments/macos/zsh.aliases`:
+
+```aliases
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"
 
 ```

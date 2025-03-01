@@ -1,0 +1,47 @@
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"

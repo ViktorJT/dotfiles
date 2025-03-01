@@ -1,0 +1,9 @@
+# iPad host specific configuration
+
+# Set environment variable to identify iPad host
+export IPAD_HOST=true
+
+# Display iPad-specific welcome message
+echo "📱 iPad Host Environment - Connected via Blink Shell"
+echo "🔍 Tip: Use two-finger tap to select and copy text"
+echo "🔍 Tip: Type 'ipad_tmux' to create an iPad-optimized tmux session"

@@ -1,0 +1,19 @@
+# Docker environment configuration
+
+# Enable FzF in Docker
+command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
+
+# Enable NVM in Docker
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# ZSH plugins in Docker (sourced from Oh My Zsh custom plugins directory)
+source_if_exists "$ZSH/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source_if_exists "$ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Display a visual indicator that this is a Docker environment in the prompt
+export DOCKER_ENV=true
+
+# Display welcome message
+echo "🐳 Docker Environment - $(cat /etc/os-release | grep "PRETTY_NAME" | cut -d "=" -f 2 | tr -d '"' 2>/dev/null || uname -a)"

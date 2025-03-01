@@ -1,8 +1,16 @@
+# Oh My Zsh plugins
 [".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
-	type = "git-repo"
-	url = "https://github.com/zsh-users/zsh-autosuggestions.git"
-	refreshPeriod = "168h"
+    type = "git-repo"
+    url = "https://github.com/zsh-users/zsh-autosuggestions.git"
+    refreshPeriod = "168h"  # Update weekly
+
 [".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
-	type = "git-repo"
-	url = "https://github.com/zsh-users/zsh-syntax-highlighting.git"
-	refreshPeriod = "168h"
+    type = "git-repo"
+    url = "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+    refreshPeriod = "168h"  # Update weekly
+
+# Nord Theme for Oh My Zsh
+[".oh-my-zsh/custom/themes/nord-extended"]
+    type = "git-repo"
+    url = "https://github.com/ViktorJT/nord-extended.git"
+    refreshPeriod = "168h"  # Update weekly
