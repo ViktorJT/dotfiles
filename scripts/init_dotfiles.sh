@@ -10,11 +10,10 @@ init_dotfiles() {
   if [ ! -d "$HOME/.local/share/chezmoi" ]; then
     echo "⚙ Initializing dotfiles..."
     
-    # Ask for dotfiles repository
-    read -p "Enter your dotfiles repository URL (Press Enter for default: $DEFAULT_REPO): " dotfiles_repo
-    dotfiles_repo=${dotfiles_repo:-$DEFAULT_REPO}
+    # Use the default repo
+    dotfiles_repo=$DEFAULT_REPO
     
-    # Use HTTPS if SSH failed or was skipped
+    # Use HTTPS if requested
     if [[ "$USE_HTTPS" == true ]]; then
       echo "Using HTTPS authentication for GitHub"
       dotfiles_repo=$HTTPS_REPO
@@ -28,12 +27,12 @@ init_dotfiles() {
   else
     echo "✅ Chezmoi already initialized!"
     
-    echo "Would you like to update your dotfiles? (y/n): "
-    read update_dotfiles
-    
-    if [[ "$update_dotfiles" == "y" ]]; then
+    # Check if we should update dotfiles
+    if [[ "$UPDATE_DOTFILES" == true ]]; then
       echo "🔄 Updating dotfiles..."
       chezmoi update
+    else
+      echo "⏭️ Skipping dotfiles update as requested."
     fi
   fi
 }
