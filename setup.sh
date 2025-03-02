@@ -28,12 +28,12 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 download_script() {
   local script_name=$1
   local output_path="$TEMP_DIR/$script_name"
-  
-  echo "📥 Downloading $script_name..."
-  curl -fsSL "$SCRIPTS_URL/$script_name" -o "$output_path"
+
+  curl -fsSL "https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts/$script_name" -o "$output_path"
   chmod +x "$output_path"
-  
-  echo "$output_path"
+
+  # Only output the path, no extra log messages
+  printf "%s" "$output_path"
 }
 
 # Main execution
