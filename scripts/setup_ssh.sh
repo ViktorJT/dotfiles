@@ -12,7 +12,9 @@ setup_ssh_key() {
 
   # Check if an SSH key already exists
   if [[ -f "$SSH_DIR/id_ed25519" ]]; then
-    echo "✅ SSH key already exists. Skipping key generation."
+  	echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"	
+    echo -e "   ✅  SSH key already exists. Skipping key generation."
+  	echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
     return
   fi
 
@@ -20,42 +22,47 @@ setup_ssh_key() {
   SSH_KEY_LABEL="${1:-${HOSTNAME}-$(date +%Y%m%d-%H%M%S)}"
   SSH_KEY_PATH="$SSH_DIR/id_ed25519"
 
-  echo "🔑 No SSH key found. Generating one..."
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "      🔑  No SSH key found. Generating a new one..."
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+
   ssh-keygen -t ed25519 -C "$SSH_KEY_LABEL" -f "$SSH_KEY_PATH" -N ""
 
   # Fix permissions
   chmod 600 "$SSH_KEY_PATH"
 
-  echo "✅ SSH key successfully created!"
-  
-  # Automatically configure Git to use SSH
-  echo "🔧 Configuring Git to use SSH..."
-  git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
-  echo "✅ Git is now set up to use SSH!"
-
-  # Display the key for manual copying
-  echo "🔓 Your public SSH key:"
+  # Display SSH key
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "🔓  Your public SSH key (copy this and add it to GitHub):"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
   cat "$SSH_KEY_PATH.pub"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
 
-  # Try copying to clipboard
-  if command -v pbcopy &>/dev/null; then
-    pbcopy < "$SSH_KEY_PATH.pub"
-    echo "📋 SSH key copied to clipboard!"
-  elif command -v xclip &>/dev/null; then
-    xclip -selection clipboard < "$SSH_KEY_PATH.pub"
-    echo "📋 SSH key copied to clipboard!"
-  elif command -v wl-copy &>/dev/null; then
-    wl-copy < "$SSH_KEY_PATH.pub"
-    echo "📋 SSH key copied to clipboard!"
-  else
-    echo "⚠️ Clipboard copy not supported. Manually copy the key above."
-  fi
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "                   📌  Next Steps:"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  echo -e "  1️⃣  Copy the SSH key above and add it to GitHub:"
+  echo -e "      🔗  https://github.com/settings/keys"
+  echo -e ""
+  echo -e "  2️⃣  Test your SSH connection to GitHub:"
+  echo -e "      🛠️   ssh -T git@github.com"
+  echo -e ""
+  echo -e "  3️⃣  If authentication fails, manually add your key:"
+  echo -e "      🔧   ssh-add ~/.ssh/id_ed25519"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+	echo -e ""
 
-  # Instruct user to add SSH key to GitHub
-  echo "📌 Add your SSH key to GitHub: https://github.com/settings/keys"
-  echo "Once added, test the connection using:"
-  echo "  ssh -T git@github.com"
+  echo -e "       📋  Some useful commands:"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "  • 📝  chezmoi edit ~/.zshrc  - Edit your zsh config"
+  echo -e "  • ⚡  chezmoi apply          - Apply changes"
+  echo -e "  • 🔄  chezmoi update         - Pull latest changes from repo"
+  echo -e "  • 📂  chezmoi cd             - Go to your dotfiles directory"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  echo -e ""
+  echo -e ""
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "       🎉  Your development environment is ready!"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
 }
-
-# Run the function and pass any provided argument
-setup_ssh_key "$1"
