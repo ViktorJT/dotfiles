@@ -6,11 +6,6 @@ SCRIPTS_URL="https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts"
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-#DEBUGGING
-echo "🛠 Temporary directory: $TEMP_DIR"
-ls -l "$TEMP_DIR"
-#DEBUGGING
-
 download_script() {
   local script_name=$1
   local output_path="$TEMP_DIR/$script_name"
@@ -24,14 +19,9 @@ download_script() {
   fi
 
   chmod +x "$output_path"
-  echo "✅ Successfully downloaded $script_name!"
-  echo "$output_path"
+  
+  printf "%s" "$output_path"
 }
-
-#DEBUGGING
-echo "🛠 Temporary directory: $TEMP_DIR"
-ls -l "$TEMP_DIR"
-#DEBUGGING
 
 main() {
   echo "🚀 Starting universal setup script"
