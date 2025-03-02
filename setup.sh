@@ -67,13 +67,15 @@ main() {
   source "$chezmoi_script"
   install_chezmoi
 
-  dotfiles_script=$(download_script "init_dotfiles.sh")
-  source "$dotfiles_script"
-  init_dotfiles
-
+  # Set up environment before initializing dotfiles
   env_specific_script=$(download_script "setup_environment.sh")
   source "$env_specific_script"
   setup_environment_specific
+
+  # Now initialize dotfiles with correct environment settings
+  dotfiles_script=$(download_script "init_dotfiles.sh")
+  source "$dotfiles_script"
+  init_dotfiles
 
   ssh_script=$(download_script "setup_ssh.sh")
   source "$ssh_script"
