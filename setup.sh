@@ -13,41 +13,41 @@ download_script() {
   echo "📥 Downloading $script_name to $output_path..." >&2
   curl -fsSL "$SCRIPTS_URL/$script_name" -o "$output_path"
 
-  if [[ ! -f "$output_path" ]]; then
+  # Check if download was successful
+  if [[ ! -f "$output_path" || ! -s "$output_path" ]]; then
     echo "❌ Error: Failed to download $script_name!" >&2
-    exit 1  # Quit script if download fails
+    return 1
   fi
 
   chmod +x "$output_path"
-  
-  echo "$output_path"  # Use echo instead of printf
+  echo "$output_path"
 }
 
 main() {
   echo "🚀 Starting universal setup script"
 
-  # Download and source scripts with explicit error checking
-  env_script=$(download_script "detect_environment.sh") || { echo "❌ Failed at detect_environment.sh"; exit 1; }
+  # Download and source scripts with proper error handling
+  env_script=$(download_script "detect_environment.sh")
   source "$env_script"
   detect_environment
 
-  deps_script=$(download_script "install_dependencies.sh") || { echo "❌ Failed at install_dependencies.sh"; exit 1; }
+  deps_script=$(download_script "install_dependencies.sh")
   source "$deps_script"
   install_dependencies
 
-  chezmoi_script=$(download_script "install_chezmoi.sh") || { echo "❌ Failed at install_chezmoi.sh"; exit 1; }
+  chezmoi_script=$(download_script "install_chezmoi.sh")
   source "$chezmoi_script"
   install_chezmoi
 
-  dotfiles_script=$(download_script "init_dotfiles.sh") || { echo "❌ Failed at init_dotfiles.sh"; exit 1; }
+  dotfiles_script=$(download_script "init_dotfiles.sh")
   source "$dotfiles_script"
   init_dotfiles
 
-  env_specific_script=$(download_script "setup_environment.sh") || { echo "❌ Failed at setup_environment.sh"; exit 1; }
+  env_specific_script=$(download_script "setup_environment.sh")
   source "$env_specific_script"
   setup_environment_specific
 
-  ssh_script=$(download_script "setup_ssh.sh") || { echo "❌ Failed at setup_ssh.sh"; exit 1; }
+  ssh_script=$(download_script "setup_ssh.sh")
   source "$ssh_script"
   setup_ssh_key "$1"
 
