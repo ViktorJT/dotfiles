@@ -17,6 +17,9 @@
   └–––––––––––––––––––––––––––––––––––––––––––––┘
 '
 
+# Pass the SSH key name (if provided) to the setup_ssh script
+bash setup_ssh.sh "$1"
+
 # Define base URL for raw script downloads
 SCRIPTS_URL="https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts"
 
