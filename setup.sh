@@ -10,7 +10,7 @@ download_script() {
   local script_name=$1
   local output_path="$TEMP_DIR/$script_name"
 
-  echo "📥 Downloading $script_name to $output_path..."
+  echo "📥 Downloading $script_name to $output_path..." >&2
   curl -fsSL "$SCRIPTS_URL/$script_name" -o "$output_path"
 
   if [[ ! -f "$output_path" ]]; then
@@ -20,7 +20,7 @@ download_script() {
 
   chmod +x "$output_path"
   
-  printf "%s" "$output_path"
+  echo "$output_path"  # Use echo instead of printf
 }
 
 main() {
