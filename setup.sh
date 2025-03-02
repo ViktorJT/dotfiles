@@ -2,6 +2,31 @@
 
 set -e  # Exit immediately if any command exits with a non-zero status
 
+# Default configuration
+SSH_KEY_NAME=""  # Default to hostname-timestamp if empty
+UPDATE_DOTFILES=true  # Default to update dotfiles
+
+# Parse command line arguments
+for arg in "$@"; do
+  case $arg in
+    --ssh-key=*)
+      SSH_KEY_NAME="${arg#*=}"
+      ;;
+    --update-dotfiles=*)
+      UPDATE_DOTFILES="${arg#*=}"
+      ;;
+    *)
+      # If no recognized pattern, assume it's the SSH key name
+      if [[ -z "$SSH_KEY_NAME" ]]; then
+        SSH_KEY_NAME="$arg"
+      fi
+      ;;
+  esac
+done
+
+# Export variables for other scripts to use
+export UPDATE_DOTFILES
+
 SCRIPTS_URL="https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts"
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
@@ -25,6 +50,9 @@ download_script() {
 
 main() {
   echo "🚀 Starting universal setup script"
+  echo "📋 Configuration:"
+  echo "  - SSH Key Name: ${SSH_KEY_NAME:-'auto-generated'}"
+  echo "  - Update Dotfiles: $UPDATE_DOTFILES"
 
   # Download and source scripts with proper error handling
   env_script=$(download_script "detect_environment.sh")
@@ -49,7 +77,7 @@ main() {
 
   ssh_script=$(download_script "setup_ssh.sh")
   source "$ssh_script"
-  setup_ssh_key "$1"
+  setup_ssh_key "$SSH_KEY_NAME"
 
   echo -e "\n┌──────────────────────────────────────────────────┐"
   echo -e "│                                                  │"
