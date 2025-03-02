@@ -43,9 +43,6 @@ download_script() {
 main() {
   echo "🚀 Starting universal setup script"
   
-  # Initialize variables
-  export USE_HTTPS=false
-  
   # Download and source environment detection script
   env_script=$(download_script "detect_environment.sh")
   source "$env_script"
@@ -61,11 +58,6 @@ main() {
   source "$chezmoi_script"
   install_chezmoi
   
-  # Download and source SSH key setup script
-  ssh_script=$(download_script "setup_ssh.sh")
-  source "$ssh_script"
-  setup_ssh_key
-  
   # Download and source dotfiles initialization script
   dotfiles_script=$(download_script "init_dotfiles.sh")
   source "$dotfiles_script"
@@ -75,6 +67,10 @@ main() {
   env_specific_script=$(download_script "setup_environment.sh")
   source "$env_specific_script"
   setup_environment_specific
+  
+  # Download and source SSH key setup script, pass custom key name as argument
+  ssh_script=$(download_script "setup_ssh.sh")
+  bash "$ssh_script" "$1"
   
   echo
   echo "✅ Setup complete!"
@@ -89,4 +85,4 @@ main() {
 }
 
 # Run the main function
-main
+main "$@"
