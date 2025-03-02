@@ -8,15 +8,19 @@ download_script() {
   local script_name=$1
   local output_path="$TEMP_DIR/$script_name"
 
-  echo "📥 Downloading $script_name..."
+  echo "📥 Downloading $script_name to $output_path..."
   curl -fsSL "$SCRIPTS_URL/$script_name" -o "$output_path"
   chmod +x "$output_path"
 
   if [[ ! -f "$output_path" ]]; then
-    echo "❌ Error: $script_name failed to download!" >&2
+    echo "❌ Error: Failed to download $script_name!" >&2
+    echo "Debug: Attempted to download from $SCRIPTS_URL/$script_name"
+    echo "Debug: Temporary directory contents:"
+    ls -l "$TEMP_DIR"
     exit 1
   fi
 
+  echo "✅ Successfully downloaded $script_name!"
   echo "$output_path"
 }
 
