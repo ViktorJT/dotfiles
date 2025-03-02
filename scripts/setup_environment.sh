@@ -5,58 +5,64 @@
 setup_environment_specific() {
   echo "🛠️ Setting up environment-specific configurations..."
   
-  # Prompt for user information with defaults
-  DEFAULT_NAME="Viktor"
-  DEFAULT_EMAIL="v.jensentorp@gmail.com"
+  # Default user info
+  USER_NAME="Viktor"
+  USER_EMAIL="v.jensentorp@gmail.com"
   
-  read -p "Enter your name for Git config [default: $DEFAULT_NAME]: " USER_NAME
-  USER_NAME=${USER_NAME:-$DEFAULT_NAME}
+  # Create chezmoi configuration with environment information
+  echo "📝 Creating chezmoi configuration..."
   
-  read -p "Enter your email for Git config [default: $DEFAULT_EMAIL]: " USER_EMAIL
-  USER_EMAIL=${USER_EMAIL:-$DEFAULT_EMAIL}
+  # Determine the current environment 
+  isDocker="false"
+  isMacOS="false"
+  isLinux="false"
+  dockerType=""
   
-  # Update git config
-  git config --global user.name "$USER_NAME"
-  git config --global user.email "$USER_EMAIL"
-  echo "✅ Git configuration updated!"
+  # Use the detected environment from detect_environment.sh
+  if [[ "$ENV_NAME" == "Docker" ]]; then
+    isDocker="true"
+    
+    # Try to detect Docker container type based on hostname
+    if [[ "$(hostname)" == *"web"* ]]; then
+      dockerType="web"
+    elif [[ "$(hostname)" == *"data"* ]]; then
+      dockerType="data-science"
+    elif [[ "$(hostname)" == *"dev"* ]]; then
+      dockerType="ipad-host"
+    else
+      dockerType="dev"
+    fi
+    
+  elif [[ "$ENV_NAME" == "macOS" ]]; then
+    isMacOS="true"
+  elif [[ "$ENV_NAME" == "Linux" ]]; then
+    isLinux="true"
+  fi
   
-  # Create or update chezmoi config with environment information
-  cat > "$HOME/.chezmoi.toml.tmpl" << EOF
-# ~/.chezmoi.toml.tmpl
-{{- \$isDocker := false -}}
-{{- \$dockerType := "" -}}
-{{- \$isMacOS := false -}}
-{{- \$isLinux := false -}}
-
-{{- if eq .chezmoi.os "darwin" -}}
-{{-   \$isMacOS = true -}}
-{{- else if eq .chezmoi.os "linux" -}}
-{{-   \$isLinux = true -}}
-{{-   if (.chezmoi.kernel.osrelease | lower | contains "docker") -}}
-{{-     \$isDocker = true -}}
-{{-     /* Try to detect Docker container type */ -}}
-{{-     if (.chezmoi.hostname | lower | contains "web") -}}
-{{-       \$dockerType = "web" -}}
-{{-     else if (.chezmoi.hostname | lower | contains "data") -}}
-{{-       \$dockerType = "data-science" -}}
-{{-     else if (.chezmoi.hostname | lower | contains "dev") -}}
-{{-       \$dockerType = "ipad-host" -}}
-{{-     else -}}
-{{-       \$dockerType = "dev" -}}
-{{-     end -}}
-{{-   end -}}
-{{- end -}}
+  # Create chezmoi configuration file
+  mkdir -p "$HOME/.config/chezmoi"
+  cat > "$HOME/.config/chezmoi/chezmoi.toml" << EOF
+# chezmoi configuration file
 
 [data]
-    docker = {{ \$isDocker }}
-    dockerType = "{{ \$dockerType }}"
-    macos = {{ \$isMacOS }}
-    linux = {{ \$isLinux }}
-    hostname = "{{ .chezmoi.hostname }}"
-    username = "{{ .chezmoi.username }}"
-    email = "$USER_EMAIL"
-    name = "$USER_NAME"
+    docker = ${isDocker}
+    dockerType = "${dockerType}"
+    macos = ${isMacOS}
+    linux = ${isLinux}
+    hostname = "$(hostname)"
+    username = "$(whoami)"
+    email = "${USER_EMAIL}"
+    name = "${USER_NAME}"
 EOF
+  
+  # Update git config if not already set
+  if ! git config --global user.name >/dev/null 2>&1; then
+    git config --global user.name "$USER_NAME"
+    git config --global user.email "$USER_EMAIL"
+    echo "✅ Git configuration updated!"
+  else
+    echo "✅ Git configuration already set!"
+  fi
   
   echo "✅ Environment configuration set up!"
 }
