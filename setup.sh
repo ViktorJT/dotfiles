@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
+# Get execution directory (where script was run)
 EXECUTION_DIR="$(pwd)"
 
-# Default values
+# Default environment
 ENVIRONMENT="macos"
 CONFIG_MODE="global"
 
+# Parse arguments
 for arg in "$@"; do
   case $arg in
     --env=*)
@@ -16,29 +18,25 @@ for arg in "$@"; do
   esac
 done
 
-echo "Setting up environment: $ENVIRONMENT"
+echo "Setting up environment: $ENVIRONMENT in $EXECUTION_DIR"
 
-# Ensure ChezMoi is installed
+# Ensure ChezMoi is installed globally
 if ! command -v chezmoi &> /dev/null; then
   echo "Installing ChezMoi..."
   sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-if [ ! -d "$HOME/.local/share/chezmoi" ]; then
-  # Initialize ChezMoi with my github username, defaults to my dotfiles repo
-  echo "Initializing ChezMoi..."
-  chezmoi init ViktorJT
-fi
-
 # Extract config mode from environments.yaml
 CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
 
-# Determine whether to use PWD or default behavior based on config mode
+# Apply different behavior for local vs global environments
 if [[ "$CONFIG_MODE" == "local" ]]; then
-  echo "Applying dotfiles inside: $EXECUTION_DIR (Local environment)"
+  echo "Initializing and applying dotfiles in: $EXECUTION_DIR (Local environment)"
+  chezmoi init --source="$EXECUTION_DIR" ViktorJT
   chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
 else
-  echo "Applying dotfiles globally (System environment)"
+  echo "Initializing and applying dotfiles globally (System environment)"
+  chezmoi init ViktorJT
   chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
 fi
