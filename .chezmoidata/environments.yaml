@@ -1,9 +1,17 @@
-default: linux
+default: macos
 
 environments:
-  linux:
-    os: Linux
-    packages: [zsh]
   macos:
-    os: Darwin
-    packages: [zsh]
+    type: system
+    package_manager: brew
+    packages: [zsh, git, neovim, chrome, spotify]
+
+  docker-web-dev:
+    type: docker
+    base_image: debian:latest
+    packages: [zsh, git, curl, sudo, neovim, tmux]
+    user: devuser
+
+  docker-web-dev-db:
+    type: docker-compose
+    compose_file: docker/docker-compose.yml

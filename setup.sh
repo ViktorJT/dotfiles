@@ -20,6 +20,6 @@ for arg in "$@"; do
   esac
 done
 
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply ViktorJT
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply ViktorJT -- --env=$ENVIRONMENT
 
 echo "Dotfiles setup complete!"

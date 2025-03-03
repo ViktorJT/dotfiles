@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+echo "Starting Docker Compose environment..."
+docker-compose -f $HOME/.local/share/chezmoi/docker/docker-compose.yml up -d
+
+echo "Attaching to web container..."
+docker-compose exec web /bin/zsh

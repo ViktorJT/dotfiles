@@ -1,0 +1,5 @@
+# ChezMoi Configuration
+
+{{ if (output "mount | grep '/tmp' | grep 'noexec'") -}}
+scriptTempDir: ~/.local/share/chezmoi/tmp
+{{- end }}

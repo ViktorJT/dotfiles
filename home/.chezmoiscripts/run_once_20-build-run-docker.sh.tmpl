@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+echo "Building the Docker container..."
+docker build -t chezmoi-web-dev -f $HOME/Dockerfile .
+
+echo "Running the container..."
+docker run --rm -it chezmoi-web-dev
