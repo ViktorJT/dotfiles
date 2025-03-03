@@ -5,66 +5,48 @@ set -e  # Exit immediately if any command fails
 # ┃ Embedded Logging Module                                                      ┃
 # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-# Terminal colors
-if [[ -t 1 ]]; then
-  RESET="\033[0m"
-  BOLD="\033[1m"
-  RED="\033[31m"
-  GREEN="\033[32m"
-  YELLOW="\033[33m"
-  BLUE="\033[34m"
-  MAGENTA="\033[35m"
-  CYAN="\033[36m"
-else
-  RESET=""
-  BOLD=""
-  RED=""
-  GREEN=""
-  YELLOW=""
-  BLUE=""
-  MAGENTA=""
-  CYAN=""
-fi
-
 # Get terminal width (default to 80 if unable to determine)
-TERM_WIDTH=$(tput cols 2>/dev/null || echo 80)
+TERM_WIDTH=80
+if command -v tput &>/dev/null && tty -s; then
+  TERM_WIDTH=$(tput cols 2>/dev/null || echo 80)
+fi
 BOX_WIDTH=$((TERM_WIDTH - 2))  # Allow for borders
 
-# Fancy logging functions
+# Fancy logging functions - no colors, just ASCII art
 log_header() {
   echo ""
-  echo "┏${CYAN}$(printf '━%.0s' $(seq 1 $BOX_WIDTH))${RESET}┓"
-  echo "┃${BOLD}$(printf " %-${BOX_WIDTH}s " "🚀 $1")${RESET}┃"
-  echo "┗${CYAN}$(printf '━%.0s' $(seq 1 $BOX_WIDTH))${RESET}┛"
+  echo "┏━$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 2))))━┓"
+  echo "┃ $(printf "%-${BOX_WIDTH}s" "🚀 $1") ┃"
+  echo "┗━$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 2))))━┛"
   echo ""
 }
 
 log_section() {
   echo ""
-  echo "┏${BLUE}$(printf '━%.0s' $(seq 1 $BOX_WIDTH))${RESET}┓"
-  echo "┃${BOLD}$(printf " %-${BOX_WIDTH}s " "📌 $1")${RESET}┃"
-  echo "┗${BLUE}$(printf '━%.0s' $(seq 1 $BOX_WIDTH))${RESET}┛"
+  echo "┏━$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 2))))━┓"
+  echo "┃ $(printf "%-${BOX_WIDTH}s" "📌 $1") ┃"
+  echo "┗━$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 2))))━┛"
   echo ""
 }
 
 log_step() {
-  printf " ${CYAN}▶${RESET} %s\n" "$1"
+  printf " ▶ %s\n" "$1"
 }
 
 log_success() {
-  printf " ${GREEN}✓${RESET} %s\n" "$1"
+  printf " ✓ %s\n" "$1"
 }
 
 log_warning() {
-  printf " ${YELLOW}⚠${RESET} %s\n" "$1"
+  printf " ⚠ %s\n" "$1"
 }
 
 log_error() {
-  printf " ${RED}✗${RESET} %s\n" "$1"
+  printf " ✗ %s\n" "$1"
 }
 
 log_info() {
-  printf " ${BLUE}ℹ${RESET} %s\n" "$1"
+  printf " ℹ %s\n" "$1"
 }
 
 log_command_output() {
@@ -85,9 +67,9 @@ log_code_block() {
 
 log_success_block() {
   echo ""
-  echo " ┏${GREEN}$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 2))))${RESET}┓"
-  echo " ┃$(printf " %-$((BOX_WIDTH - 4))s " "🎉 $1")┃"
-  echo " ┗${GREEN}$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 2))))${RESET}┛"
+  echo " ┏━$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 4))))━┓"
+  echo " ┃ $(printf "%-$((BOX_WIDTH - 4))s" "🎉 $1") ┃"
+  echo " ┗━$(printf '━%.0s' $(seq 1 $((BOX_WIDTH - 4))))━┛"
   echo ""
 }
 
