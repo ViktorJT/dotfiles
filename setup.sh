@@ -25,12 +25,12 @@ fi
 # Ensure ChezMoi is in PATH
 export PATH="$HOME/.local/bin:$PATH"
 
-# Initialize ChezMoi in the correct source
-if [[ "$CONFIG_MODE" == "local" ]]; then
+#Initialize ChezMoi in the correct source
+#if [[ "$CONFIG_MODE" == "local" ]]; then
   chezmoi init --source="$EXECUTION_DIR" ViktorJT
-else
-  chezmoi init ViktorJT
-fi
+#else
+# chezmoi init ViktorJT
+#fi
 
 # Extract config mode
 CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
