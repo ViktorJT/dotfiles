@@ -1,10 +1,16 @@
-export PATH="$HOME/bin:$PATH"
+# {{ .environment }} Environment
+export ENVIRONMENT="{{ .environment }}"
 
-# Enable modern Zsh features
-autoload -U compinit && compinit
-autoload -U promptinit && promptinit
+# Determine where dotfiles should be applied
+{{ if eq .config "local" }}
+  export ZSH_CONFIG_DIR="{{ .chezmoi.executionDir }}"
+{{ else }}
+  export ZSH_CONFIG_DIR="$HOME"
+{{ end }}
 
-# Aliases
-alias ll='ls -la'
+# Source per-environment aliases (if they exist)
+if [ -f "$ZSH_CONFIG_DIR/.aliases" ]; then
+  source "$ZSH_CONFIG_DIR/.aliases"
+fi
 
-echo "Loaded minimal Zsh configuration"
+export SHELL=/bin/zsh

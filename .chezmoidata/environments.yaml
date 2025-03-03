@@ -1,7 +1,7 @@
 default: macos
 
 # default packages that apply to all environments
-default_packages: [zsh, git, curl]
+default_packages: [zsh, git]
 
 environments:
   macos:
@@ -15,7 +15,7 @@ environments:
 	config: local
 	localpath: "{{ .chezmoi.executionDir }}"
     base_image: debian:latest
-    packages: [zsh, git, curl, sudo, neovim, tmux]
+    packages: [zsh, git, neovim, tmux]
     user: devuser
 
   docker-web-dev-db:

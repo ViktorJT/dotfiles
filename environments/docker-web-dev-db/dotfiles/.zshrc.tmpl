@@ -1,8 +1,5 @@
-# Web Dev DB Environment
-export ENVIRONMENT="docker-web-dev-db"
+{{- include "home/.zshrc.tmpl" }}
 
-# Aliases
-alias ll="ls -lah"
-
-# Set zsh as the default shell
-export SHELL=/bin/zsh
+# Additional settings only for docker-web-dev-db
+alias dbstart="docker start web-db"
+alias dbstop="docker stop web-db"

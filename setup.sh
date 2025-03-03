@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
+EXECUTION_DIR="$(pwd)"
+
 # Default values
 ENVIRONMENT="macos"
+CONFIG_MODE="global"
 
 for arg in "$@"; do
   case $arg in
@@ -28,5 +31,14 @@ if [ ! -d "$HOME/.local/share/chezmoi" ]; then
   chezmoi init ViktorJT
 fi
 
-# Apply dotfiles with correct environment
-chezmoi apply -- --env=$ENVIRONMENT
+# Extract config mode from environments.yaml
+CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
+
+# Determine whether to use PWD or default behavior based on config mode
+if [[ "$CONFIG_MODE" == "local" ]]; then
+  echo "Applying dotfiles inside: $EXECUTION_DIR (Local environment)"
+  chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+else
+  echo "Applying dotfiles globally (System environment)"
+  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+fi
