@@ -48,7 +48,7 @@ chezmoi init --source="$EXECUTION_DIR" ViktorJT
 
 # **Step 4: Apply dotfiles using the correct config mode**
 #if [[ "$CONFIG_MODE" == "local" ]]; then
-chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+#chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
 #else
 #  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
 #fi
