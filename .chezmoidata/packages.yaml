@@ -1,0 +1,14 @@
+default:
+  common:
+    - git
+    - curl
+
+environments:
+  macos:
+    brew:
+      - zsh
+      - tmux
+  linux:
+    apt:
+      - zsh
+      - tmux
