@@ -3,8 +3,13 @@ set -e
 
 REPO_URL="https://github.com/viktorjt/dotfiles.git"
 
+# Detect if /tmp is noexec and create an alternative tmp directory if needed
+if mount | grep '/tmp' | grep -q 'noexec'; then
+  mkdir -p "$HOME/.local/share/chezmoi/tmp"
+fi
+
 # Parse arguments
-ENVIRONMENT=""
+ENVIRONMENT="macos"
 SSH_KEY_NAME=""
 
 for arg in "$@"; do
@@ -20,6 +25,16 @@ for arg in "$@"; do
   esac
 done
 
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply ViktorJT -- --env=$ENVIRONMENT
+
+echo "Setting up environment: $ENVIRONMENT"
+
+# Install chezmoi and apply dotfiles in one step
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
+
+# Initialize chezmoi (defaults to dotfiles repo when passing a Github username)
+chezmoi init ViktorJT
+
+# Apply dotfiles with the environment variable
+chezmoi apply -- --env=$ENVIRONMENT
 
 echo "Dotfiles setup complete!"
