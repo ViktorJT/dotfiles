@@ -26,7 +26,7 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 
 # Initialize ChezMoi in the correct source
-if [[ -f "$EXECUTION_DIR/.chezmoidata/environments.yaml" ]]; then
+if [[ "$CONFIG_MODE" == "local" ]]; then
   chezmoi init --source="$EXECUTION_DIR" ViktorJT
 else
   chezmoi init ViktorJT
