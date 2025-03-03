@@ -20,13 +20,6 @@ for arg in "$@"; do
   esac
 done
 
-# Ensure chezmoi is installed
-if ! command -v chezmoi &> /dev/null; then
-  echo "Installing chezmoi..."
-  sh -c "$(curl -fsLS get.chezmoi.io)"
-fi
-
-# Initialize chezmoi without cloning
-chezmoi init --apply viktorjt
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply ViktorJT
 
 echo "Dotfiles setup complete!"
