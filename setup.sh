@@ -1,14 +1,17 @@
 #!/bin/bash
-
-set -e  # Exit immediately if any command exits with a non-zero status
+set -e  # Exit immediately if any command fails
 
 # Default configuration
-SSH_KEY_NAME=""  # Default to hostname-timestamp if empty
-UPDATE_DOTFILES=true  # Default to update dotfiles
+ENV_TYPE=""       # Environment type (e.g., "macos", "docker-ipad")
+SSH_KEY_NAME=""   # Custom SSH key name
+UPDATE_DOTFILES=true
 
 # Parse command line arguments
 for arg in "$@"; do
   case $arg in
+    --env=*)
+      ENV_TYPE="${arg#*=}"
+      ;;
     --ssh-key=*)
       SSH_KEY_NAME="${arg#*=}"
       ;;
@@ -16,7 +19,7 @@ for arg in "$@"; do
       UPDATE_DOTFILES="${arg#*=}"
       ;;
     *)
-      # If no recognized pattern, assume it's the SSH key name
+      # Legacy support: first arg as SSH key name
       if [[ -z "$SSH_KEY_NAME" ]]; then
         SSH_KEY_NAME="$arg"
       fi
@@ -24,91 +27,173 @@ for arg in "$@"; do
   esac
 done
 
-# Export variables for other scripts to use
-export UPDATE_DOTFILES
-
-SCRIPTS_URL="https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts"
+# Set up temporary directory for downloaded scripts
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-download_script() {
-  local script_name=$1
-  local output_path="$TEMP_DIR/$script_name"
-
-  echo "📥 Downloading $script_name to $output_path..." >&2
-  curl -fsSL "$SCRIPTS_URL/$script_name" -o "$output_path"
-
-  # Check if download was successful
-  if [[ ! -f "$output_path" || ! -s "$output_path" ]]; then
-    echo "❌ Error: Failed to download $script_name!" >&2
-    return 1
+# Download and source the logging functions
+download_logging_utils() {
+  LOGGING_SCRIPT="$TEMP_DIR/logging.sh"
+  curl -fsSL "https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts/utils/logging.sh" -o "$LOGGING_SCRIPT"
+  if [ -f "$LOGGING_SCRIPT" ]; then
+    source "$LOGGING_SCRIPT"
+  else
+    # Fallback minimal logging if download fails
+    log_header() { echo "=== $1 ==="; }
+    log_section() { echo "--- $1 ---"; }
+    log_step() { echo "-> $1"; }
+    log_success() { echo "✓ $1"; }
+    log_warning() { echo "! $1"; }
+    log_error() { echo "✗ $1"; }
+    log_info() { echo "i $1"; }
+    log_command_output() { cat; }
+    log_code_block() { echo "$1"; }
+    log_success_block() { echo "🎉 $1"; }
   fi
+}
 
-  chmod +x "$output_path"
-  echo "$output_path"
+# Install minimal dependencies
+install_deps() {
+  log_section "Checking for required dependencies"
+  
+  # Check for git
+  if ! command -v git &>/dev/null; then
+    log_step "Git not found. Installing..."
+    if command -v apt &>/dev/null; then
+      sudo apt update && sudo apt install -y git
+    elif command -v brew &>/dev/null; then
+      brew install git
+    elif command -v pacman &>/dev/null; then
+      sudo pacman -Sy --noconfirm git
+    elif command -v dnf &>/dev/null; then
+      sudo dnf install -y git
+    else
+      log_error "Unable to install git. Please install it manually."
+      exit 1
+    fi
+    log_success "Git installed successfully."
+  else
+    log_success "Git already installed."
+  fi
+}
+
+# Install chezmoi if needed
+install_chezmoi() {
+  log_section "Setting up chezmoi"
+  
+  if ! command -v chezmoi &>/dev/null; then
+    log_step "Installing chezmoi..."
+    
+    # Run the installer and capture output
+    INSTALL_OUTPUT=$(sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" 2>&1)
+    echo "$INSTALL_OUTPUT" | log_command_output
+    
+    # Add chezmoi to PATH for this session
+    export PATH="$HOME/.local/bin:$PATH"
+    
+    if ! command -v chezmoi &>/dev/null; then
+      log_error "Failed to install chezmoi. Please install it manually."
+      exit 1
+    fi
+    
+    log_success "Chezmoi installed successfully!"
+  else
+    log_success "Chezmoi already installed."
+  fi
+  
+  # Display chezmoi version
+  CHEZMOI_VERSION=$(chezmoi --version)
+  log_info "Using chezmoi version: $CHEZMOI_VERSION"
+}
+
+# Generate SSH key if requested
+generate_ssh_key() {
+  log_section "SSH Key Setup"
+  
+  if [[ -z "$SSH_KEY_NAME" ]]; then
+    SSH_KEY_NAME="$(hostname)-$(date +%Y%m%d)"
+  fi
+  
+  if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then
+    log_step "Generating new SSH key: $SSH_KEY_NAME"
+    
+    # Ensure .ssh directory exists with proper permissions
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+    
+    # Generate the key
+    ssh-keygen -t ed25519 -C "$SSH_KEY_NAME" -f "$HOME/.ssh/id_ed25519" -N ""
+    chmod 600 "$HOME/.ssh/id_ed25519"
+    
+    log_success "SSH key generated!"
+    
+    # Display the public key
+    echo ""
+    log_info "Your SSH public key (add this to GitHub):"
+    SSH_KEY=$(cat "$HOME/.ssh/id_ed25519.pub")
+    log_code_block "$SSH_KEY"
+  else
+    log_success "SSH key already exists at ~/.ssh/id_ed25519"
+  fi
 }
 
 main() {
-  echo "🚀 Starting universal setup script"
-  echo "📋 Configuration:"
-  echo "  - SSH Key Name: ${SSH_KEY_NAME:-'auto-generated'}"
-  echo "  - Update Dotfiles: $UPDATE_DOTFILES"
-
-  # Download and source scripts with proper error handling
-  env_script=$(download_script "detect_environment.sh")
-  source "$env_script"
-  detect_environment
-
-  deps_script=$(download_script "install_dependencies.sh")
-  source "$deps_script"
-  install_dependencies
-
-  chezmoi_script=$(download_script "install_chezmoi.sh")
-  source "$chezmoi_script"
+  # First download and source the logging utility
+  download_logging_utils
+  
+  log_header "Setting up your development environment"
+  
+  # Show configuration
+  log_section "Configuration"
+  log_info "Environment:       ${ENV_TYPE:-"Auto-detect"}"
+  log_info "SSH Key Name:      ${SSH_KEY_NAME:-"Auto-generate"}"
+  log_info "Update Dotfiles:   $UPDATE_DOTFILES"
+  
+  # Install dependencies
+  install_deps
   install_chezmoi
 
-  # Set up environment before initializing dotfiles
-  env_specific_script=$(download_script "setup_environment.sh")
-  source "$env_specific_script"
-  setup_environment_specific
+  # Prepare extra args for chezmoi init
+  EXTRA_ARGS=""
+  if [[ ! -z "$ENV_TYPE" ]]; then
+    EXTRA_ARGS="$EXTRA_ARGS --data=environment=$ENV_TYPE"
+  fi
+  if [[ ! -z "$SSH_KEY_NAME" ]]; then
+    EXTRA_ARGS="$EXTRA_ARGS --data=ssh.keyName=$SSH_KEY_NAME"
+  fi
+  EXTRA_ARGS="$EXTRA_ARGS --data=update=$UPDATE_DOTFILES"
 
-  # Now initialize dotfiles with correct environment settings
-  dotfiles_script=$(download_script "init_dotfiles.sh")
-  source "$dotfiles_script"
-  init_dotfiles
-
-  ssh_script=$(download_script "setup_ssh.sh")
-  source "$ssh_script"
-  setup_ssh_key "$SSH_KEY_NAME"
-
-  echo -e "\n┌──────────────────────────────────────────────────┐"
-  echo -e "│                                                  │"
-  echo -e "│    NEXT STEPS                                    │"
-  echo -e "│                                                  │"
-  echo -e "│    •  Copy your SSH key manually:                │"
-  echo -e "│       •  Run: cat ~/.ssh/id_ed25519.pub          │"
-  echo -e "│       • Copy and add it to GitHub here:          │"
-  echo -e "│         → https://github.com/settings/keys       │"
-  echo -e "│                                                  │"
-  echo -e "│    •  Test SSH connection:                       │"
-  echo -e "│       • Run: ssh -T git@github.com               │"
-  echo -e "│       • If successful, GitHub should say:        │"
-  echo -e "│         \"You've successfully authenticated\"      │"
-  echo -e "│                                                  │"
-  echo -e "└──────────────────────────────────────────────────┘\n"
-
-  echo -e "┌──────────────────────────────────────────────────┐"
-  echo -e "│                                                  │"
-  echo -e "│    USEFUL COMMANDS                               │"
-  echo -e "│                                                  │"
-  echo -e "│    •  chezmoi edit ~/.zshrc    - Edit Zsh        │"
-  echo -e "│    •  chezmoi apply            - Apply changes   │"
-  echo -e "│    •  chezmoi update           - Pull latest     │"
-  echo -e "│    •  chezmoi cd               - Dotfiles dir    │"
-  echo -e "│                                                  │"
-  echo -e "└──────────────────────────────────────────────────┘\n"
-
-  echo -e "     🎉 YOUR DEVELOPMENT ENVIRONMENT IS READY!\n"
+  # Initialize and apply chezmoi
+  log_section "Initializing Dotfiles"
+  
+  if [ -d "$HOME/.local/share/chezmoi" ]; then
+    if [ "$UPDATE_DOTFILES" = true ]; then
+      log_step "Updating existing dotfiles..."
+      chezmoi update $EXTRA_ARGS
+    else
+      log_warning "Skipping update as requested"
+    fi
+  else
+    log_step "First-time setup, initializing dotfiles repository..."
+    # Use HTTPS for initial setup
+    chezmoi init https://github.com/ViktorJT/dotfiles.git $EXTRA_ARGS
+    
+    log_step "Applying dotfiles configuration..."
+    chezmoi apply
+  fi
+  
+  # Generate SSH key after everything else
+  generate_ssh_key
+  
+  log_header "Setup Complete!"
+  
+  # Show next steps
+  log_section "Next Steps"
+  log_info "1. Add your SSH key to GitHub: https://github.com/settings/keys"
+  log_info "2. Test your connection: ssh -T git@github.com"
+  log_info "3. (Optional) Switch to SSH remote: chezmoi git remote set-url origin git@github.com:ViktorJT/dotfiles.git"
+  
+  log_success_block "Your development environment is ready! Enjoy!"
 }
 
 main "$@"
