@@ -28,9 +28,10 @@ if ! command -v chezmoi &> /dev/null; then
 fi
 
 # Extract config mode from environments.yaml
+echo "DEBUG: ChezMoi data output:"
+chezmoi data
 CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
-
-echo "DEBUG: CONFIG_MODE is $CONFIG_MODE"
+echo "DEBUG: Extracted CONFIG_MODE is $CONFIG_MODE"
 
 # Apply different behavior for local vs global environments
 if [[ "$CONFIG_MODE" == "local" ]]; then
