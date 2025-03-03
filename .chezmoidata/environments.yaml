@@ -1,12 +1,9 @@
-default: common
+default: linux
 
 environments:
-  macos:
-    os: Darwin
-    packages: [brew, zsh, git]
   linux:
     os: Linux
-    packages: [apt, zsh, git]
-  docker-ipad-host:
-    parent: linux
-    packages: [vim, neovim, tmux]
+    packages: [zsh]
+  macos:
+    os: Darwin
+    packages: [zsh]
