@@ -1,12 +1,8 @@
 #!/bin/bash
 set -e
 
-# Constants
-EXECUTION_DIR="$(pwd)"
-
 # Default values
 ENVIRONMENT="macos"
-CONFIG_MODE="global"
 
 for arg in "$@"; do
   case $arg in
@@ -14,16 +10,10 @@ for arg in "$@"; do
       ENVIRONMENT="${arg#*=}"
       shift
       ;;
-	--config=*)
-      CONFIG_MODE="${arg#*=}"
-      shift
-      ;;
   esac
 done
 
 echo "Setting up environment: $ENVIRONMENT"
-echo "Config mode: $CONFIG_MODE"
-echo "Execution directory: $EXECUTION_DIR"
 
 # Ensure ChezMoi is installed
 if ! command -v chezmoi &> /dev/null; then
@@ -32,8 +22,11 @@ if ! command -v chezmoi &> /dev/null; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Initialize ChezMoi with your dotfiles (no need to set --source)
-chezmoi init ViktorJT
+if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+  # Initialize ChezMoi with my github username, defaults to my dotfiles repo
+  echo "Initializing ChezMoi..."
+  chezmoi init ViktorJT
+fi
 
-# Apply dotfiles with config mode and pass execution directory
-chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE --localpath="$EXECUTION_DIR"
+# Apply dotfiles with correct environment
+chezmoi apply -- --env=$ENVIRONMENT

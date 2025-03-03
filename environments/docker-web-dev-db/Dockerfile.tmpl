@@ -1,0 +1,22 @@
+# Use the base image from environments.yaml
+FROM {{ .chezmoidata.environments.docker-web-dev.base_image }}
+
+# Set environment variables
+ARG USERNAME={{ .chezmoidata.environments.docker-web-dev.user }}
+ENV USER $USERNAME
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+  {{ range .chezmoidata.default_packages }} {{ . }} {{ end }} \
+  {{ range .chezmoidata.environments.docker-web-dev.packages }} {{ . }} {{ end }}
+
+# Create a non-root user
+RUN useradd -m -s /bin/zsh $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set user permissions
+USER $USERNAME
+WORKDIR /home/$USERNAME
+
+# Entrypoint
+CMD ["zsh"]

@@ -1,17 +1,25 @@
 default: macos
 
+# default packages that apply to all environments
+default_packages: [zsh, git, curl]
+
 environments:
   macos:
     type: system
+	config: global
     package_manager: brew
     packages: [zsh, git, neovim, chrome, spotify]
 
   docker-web-dev:
     type: docker
+	config: local
+	localpath: "{{ .chezmoi.executionDir }}"
     base_image: debian:latest
     packages: [zsh, git, curl, sudo, neovim, tmux]
     user: devuser
 
   docker-web-dev-db:
     type: docker-compose
+	config: local
+	localpath: "{{ .chezmoi.executionDir }}"
     compose_file: docker/docker-compose.yml
