@@ -6,20 +6,20 @@ default_packages: [zsh, git]
 environments:
   macos:
     type: system
-	config: global
+    config: global
     package_manager: brew
     packages: [zsh, git, neovim, chrome, spotify]
 
   docker-web-dev:
     type: docker
-	config: local
-	localpath: "{{ .chezmoi.executionDir }}"
+    config: local
+    localpath: "{{ .chezmoi.executionDir }}"
     base_image: debian:latest
     packages: [zsh, git, neovim, tmux]
     user: devuser
 
   docker-web-dev-db:
     type: docker-compose
-	config: local
-	localpath: "{{ .chezmoi.executionDir }}"
+    config: local
+    localpath: "{{ .chezmoi.executionDir }}"
     compose_file: docker/docker-compose.yml
