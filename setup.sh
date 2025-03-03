@@ -27,6 +27,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 #Initialize ChezMoi in the correct source
 #if [[ "$CONFIG_MODE" == "local" ]]; then
+echo "$EXECUTION_DIR"
 chezmoi init --source="$EXECUTION_DIR" ViktorJT
 #else
 # chezmoi init ViktorJT
@@ -36,8 +37,8 @@ chezmoi init --source="$EXECUTION_DIR" ViktorJT
 CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
 
 # Apply dotfiles based on config mode
-if [[ "$CONFIG_MODE" == "local" ]]; then
-  chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-else
-  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-fi
+#if [[ "$CONFIG_MODE" == "local" ]]; then
+#  chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+#else
+#  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+#fi
