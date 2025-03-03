@@ -40,15 +40,15 @@ CONFIG_MODE=$(echo "$ENV_DATA" | awk -v env="$ENVIRONMENT" '
 echo "Detected config mode: $CONFIG_MODE"
 
 # **Step 3: Initialize ChezMoi in the correct location**
-if [[ "$CONFIG_MODE" == "local" ]]; then
-  chezmoi init --source="$EXECUTION_DIR" --working-tree="$EXECUTION_DIR" --config-path="$EXECUTION_DIR/chezmoi.toml" ViktorJT
-else
-  chezmoi init ViktorJT
-fi
+#if [[ "$CONFIG_MODE" == "local" ]]; then
+chezmoi init --source="$EXECUTION_DIR" ViktorJT
+#else
+#  chezmoi init ViktorJT
+#fi
 
 # **Step 4: Apply dotfiles using the correct config mode**
-if [[ "$CONFIG_MODE" == "local" ]]; then
-  chezmoi apply --source="$EXECUTION_DIR" --working-tree="$EXECUTION_DIR" --config-path="$EXECUTION_DIR/chezmoi.toml" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-else
-  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-fi
+#if [[ "$CONFIG_MODE" == "local" ]]; then
+chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+#else
+#  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+#fi
