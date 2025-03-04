@@ -15,6 +15,8 @@ if ! command -v chezmoi &> /dev/null; then
   sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 fi
 
+export PATH="$HOME/.local/bin:$PATH"
+
 ENV_DATA=$(curl -fsSL "https://raw.githubusercontent.com/ViktorJT/dotfiles/main/.chezmoidata/environments.yaml")
 
 CONFIG_MODE=$(echo "$ENV_DATA" | awk -v env="$ENVIRONMENT" '
