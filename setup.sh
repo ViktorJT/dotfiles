@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -e  # Exit on error
 
 # Get execution directory (where script was run)
 EXECUTION_DIR="$(pwd)"
@@ -7,42 +7,34 @@ EXECUTION_DIR="$(pwd)"
 # Default environment
 ENVIRONMENT="macos"
 
-# Parse arguments
 for arg in "$@"; do
-  case $arg in
-    --env=*)
-      ENVIRONMENT="${arg#*=}"
-      shift
-      ;;
-  esac
+  [[ "$arg" == --env=* ]] && ENVIRONMENT="${arg#*=}"
 done
 
-# Ensure ChezMoi is installed
 if ! command -v chezmoi &> /dev/null; then
   sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 fi
 
-# Ensure ChezMoi is in PATH
-export PATH="$HOME/.local/bin:$PATH"
-
-# **Step 1: Fetch `environments.yaml` before initializing ChezMoi**
 ENV_DATA=$(curl -fsSL "https://raw.githubusercontent.com/ViktorJT/dotfiles/main/.chezmoidata/environments.yaml")
 
-# **Step 2: Extract config_mode
 CONFIG_MODE=$(echo "$ENV_DATA" | awk -v env="$ENVIRONMENT" '
   $1 == "environments:" { in_env=1 } 
   in_env && $1 == env ":" { found=1 }
   found && $1 == "config:" { print $2; exit }
 ')
 
-echo "Detected config mode: $CONFIG_MODE"
-
-# Initialize ChezMoi in the correct source
 if [[ "$CONFIG_MODE" == "local" ]]; then
-  echo "$EXECUTION_DIR"
   chezmoi init --source="$EXECUTION_DIR" ViktorJT
 else
   chezmoi init ViktorJT
 fi
 
-CHEZMOI_ENV="$ENVIRONMENT" chezmoi apply
+# Apply chezmoi configuration
+if [[ "$CONFIG_MODE" == "local" ]]; then
+  LOCAL_CONFIG_PATH="$HOME/.config/chezmoi/chezmoi.toml"
+  mkdir -p "$(dirname "$LOCAL_CONFIG_PATH")"
+  echo "sourceDir = \"$EXECUTION_DIR\"" > "$LOCAL_CONFIG_PATH"
+  CHEZMOI_ENV="$ENVIRONMENT" chezmoi apply --config="$LOCAL_CONFIG_PATH" --source="$EXECUTION_DIR"
+else
+  chezmoi apply
+fi
