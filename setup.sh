@@ -45,9 +45,4 @@ else
   chezmoi init ViktorJT
 fi
 
-# Apply dotfiles based on config mode
-if [[ "$CONFIG_MODE" == "local" ]]; then
-  chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-else
-  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-fi
+CHEZMOI_ENV="$ENVIRONMENT" chezmoi apply
