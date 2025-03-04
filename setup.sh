@@ -24,7 +24,9 @@ CONFIG_MODE=$(echo "$ENV_DATA" | awk -v env="$ENVIRONMENT" '
 ')
 
 if [[ "$CONFIG_MODE" == "local" ]]; then
+  echo "before init!"
   chezmoi init --source="$EXECUTION_DIR" ViktorJT
+  echo "after init!"
 else
   chezmoi init ViktorJT
 fi
