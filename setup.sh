@@ -37,25 +37,17 @@ CONFIG_MODE=$(echo "$ENV_DATA" | awk -v env="$ENVIRONMENT" '
 
 echo "Detected config mode: $CONFIG_MODE"
 
-# chezmoi init --source="$EXECUTION_DIR" ViktorJT
-
 # Initialize ChezMoi in the correct source
 if [[ "$CONFIG_MODE" == "local" ]]; then
   echo "$EXECUTION_DIR"
   chezmoi init --source="$EXECUTION_DIR" ViktorJT
 else
-  echo "DEBUGGING: trying to install globally for some reason"
-#  chezmoi init ViktorJT
+  chezmoi init ViktorJT
 fi
 
-# Extract config mode
-CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
-
-echo "config mode from environments file: $CONFIG_MODE"
-
 # Apply dotfiles based on config mode
-#if [[ "$CONFIG_MODE" == "local" ]]; then
-#  chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-#else
-#  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
-#fi
+if [[ "$CONFIG_MODE" == "local" ]]; then
+  chezmoi apply --source="$EXECUTION_DIR" -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+else
+  chezmoi apply -- --env=$ENVIRONMENT --config=$CONFIG_MODE
+fi
