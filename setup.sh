@@ -29,12 +29,14 @@ else
   chezmoi init ViktorJT
 fi
 
+chezmoi apply
+
 # Apply chezmoi configuration
-if [[ "$CONFIG_MODE" == "local" ]]; then
-  LOCAL_CONFIG_PATH="$HOME/.config/chezmoi/chezmoi.toml"
-  mkdir -p "$(dirname "$LOCAL_CONFIG_PATH")"
-  echo "sourceDir = \"$EXECUTION_DIR\"" > "$LOCAL_CONFIG_PATH"
-  CHEZMOI_ENV="$ENVIRONMENT" chezmoi apply --config="$LOCAL_CONFIG_PATH" --source="$EXECUTION_DIR"
-else
-  chezmoi apply
-fi
+#if [[ "$CONFIG_MODE" == "local" ]]; then
+#  LOCAL_CONFIG_PATH="$HOME/.config/chezmoi/chezmoi.toml"
+#  mkdir -p "$(dirname "$LOCAL_CONFIG_PATH")"
+#  echo "sourceDir = \"$EXECUTION_DIR\"" > "$LOCAL_CONFIG_PATH"
+#  CHEZMOI_ENV="$ENVIRONMENT" chezmoi apply --config="$LOCAL_CONFIG_PATH" --source="$EXECUTION_DIR"
+#else
+#  chezmoi apply
+#fi
