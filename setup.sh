@@ -49,7 +49,9 @@ else
 fi
 
 # Extract config mode
-#CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
+CONFIG_MODE=$(chezmoi data | jq -r ".chezmoidata.environments[\"$ENVIRONMENT\"].config")
+
+echo "config mode from environments file: $CONFIG_MODE"
 
 # Apply dotfiles based on config mode
 #if [[ "$CONFIG_MODE" == "local" ]]; then
