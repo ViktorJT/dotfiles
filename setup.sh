@@ -17,5 +17,7 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH"
 
+echo "testing"
+
 chezmoi init ViktorJT
 CHEZMOI_ENVIRONMENT="$ENVIRONMENT" chezmoi apply
