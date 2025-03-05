@@ -1,0 +1,6293 @@
+Project Path: dotfiles
+
+Source Tree:
+
+```
+dotfiles
+├── environments
+│   ├── docker-web-dev-db
+│   │   ├── Dockerfile.tmpl
+│   │   ├── README.md
+│   │   ├── docker-compose.yml.tmpl
+│   │   └── dotfiles
+│   └── macos
+│       ├── Raycast.rayconfig
+│       ├── defaults.sh
+│       ├── dependencies.sh
+│       ├── macos-keyboard-shortcuts.xml
+│       ├── zsh.aliases
+│       ├── zsh.configuration
+│       ├── zsh.functions
+│       └── zsh.plugins
+├── home
+│   ├── nvim
+│   │   ├── LICENSE
+│   │   ├── README.md
+│   │   ├── init.lua
+│   │   ├── lazy-lock.json
+│   │   └── lua
+│   │       ├── chadrc.lua
+│   │       ├── configs
+│   │       │   ├── comment.lua
+│   │       │   ├── commentstring.lua
+│   │       │   ├── conform.lua
+│   │       │   ├── gitsigns.lua
+│   │       │   ├── lazy.lua
+│   │       │   ├── lspconfig.lua
+│   │       │   ├── mason.lua
+│   │       │   ├── nvim-lint.lua
+│   │       │   ├── nvim-tree.lua
+│   │       │   └── treesitter.lua
+│   │       ├── mappings.lua
+│   │       ├── options.lua
+│   │       └── plugins
+│   │           └── init.lua
+│   ├── starship.toml
+│   └── wezterm
+│       └── wezterm.lua
+├── setup.sh
+└── Codebase.txt
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/Dockerfile.tmpl`:
+
+```tmpl
+# Use the base image from environments.yaml
+FROM {{ .chezmoidata.environments.docker-web-dev.base_image }}
+
+# Set environment variables
+ARG USERNAME={{ .chezmoidata.environments.docker-web-dev.user }}
+ENV USER $USERNAME
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+  {{ range .chezmoidata.default_packages }} {{ . }} {{ end }} \
+  {{ range .chezmoidata.environments.docker-web-dev.packages }} {{ . }} {{ end }}
+
+# Create a non-root user
+RUN useradd -m -s /bin/zsh $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set user permissions
+USER $USERNAME
+WORKDIR /home/$USERNAME
+
+# Entrypoint
+CMD ["zsh"]
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/README.md`:
+
+```md
+# Docker Development Environment for Synology NAS
+
+This development environment is designed to run on a Synology NAS and be accessed via Mosh from an iPad Pro using Blink Shell.
+
+## Features
+
+- Ubuntu 22.04 base with development tools
+- Zsh with Oh My Zsh
+- Neovim
+- Tmux
+- Mosh for stable iPad connections
+- NVM for Node.js management
+- Starship prompt
+- Chezmoi for dotfile management
+
+## Setup Instructions
+
+### 1. Prepare Your Environment
+
+1. Upload the Dockerfile, docker-compose.yml, and setup.sh to your Synology NAS
+2. Ensure Docker is installed on your Synology NAS
+
+### 2. Build and Start the Container
+
+```bash
+# Navigate to the directory with your files
+cd /volume1/docker/dev-env-setup
+
+# Build and start the container
+docker-compose up -d
+
+# Enter the container
+docker exec -it dev-env zsh
+```
+
+### 3. Run the Setup Script
+
+Once inside the container, run:
+
+```bash
+/root/setup.sh
+```
+
+This will:
+- Generate SSH keys (if needed)
+- Help you configure GitHub access
+- Initialize chezmoi with your dotfiles repository
+- Apply your configurations
+
+### 4. Connect from iPad Pro + Blink Shell
+
+In Blink Shell:
+
+1. Add a new host:
+   - Host: Your Synology NAS IP
+   - Port: 22 (SSH) or 60000-60010 (Mosh)
+   - User: root
+
+2. Connect using Mosh for a stable connection:
+   ```
+   mosh --port=60001 root@your-synology-ip
+   ```
+
+## Using Chezmoi
+
+### Add New Dotfiles
+
+```bash
+# Add a file to be managed
+chezmoi add ~/.config/some-config-file
+
+# Edit a managed file
+chezmoi edit ~/.config/some-config-file
+
+# Apply changes
+chezmoi apply
+```
+
+### Update From Your Repository
+
+```bash
+chezmoi update
+```
+
+### Create/Edit Template Files
+
+Templates allow different settings based on the host machine:
+
+```bash
+chezmoi edit ~/.config/some-config.tmpl
+```
+
+Example template syntax:
+```
+{{- if .data.docker -}}
+# Docker-specific settings
+{{- else -}}
+# Non-Docker settings
+{{- end -}}
+```
+
+## Persistent Storage
+
+Your development environment uses persistent storage at `/volume1/docker/dev-env` on your Synology NAS. This ensures:
+
+- Your dotfiles remain between container restarts
+- SSH keys are preserved
+- Work in progress is saved
+
+## Troubleshooting
+
+### SSH Connection Issues
+
+If you're having trouble connecting to GitHub:
+
+```bash
+ssh -vT git@github.com
+```
+
+### Container Access Issues
+
+If you can't access the container:
+
+```bash
+# Check if container is running
+docker ps | grep dev-env
+
+# Check container logs
+docker logs dev-env
+```
+
+### Mosh Connection Issues
+
+If Mosh isn't connecting:
+
+1. Ensure ports 60000-60010/UDP are open on your Synology firewall
+2. Try specifying a specific port: `mosh --port=60001 root@your-synology-ip`
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/docker-compose.yml.tmpl`:
+
+```tmpl
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-dev
+    stdin_open: true
+    tty: true
+    volumes:
+     - {{ .chezmoidata.environments.docker-web-dev-db.localpath }}:/home/{{ .chezmoidata.environments.docker-web-dev.user }}
+	 depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    container_name: web-db
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: devdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+
+```
+
+`/dotfiles/environments/macos/defaults.sh`:
+
+```sh
+#!/bin/bash
+# macOS system defaults setup
+
+echo "🔧 Configuring macOS system defaults..."
+
+# Ask for the administrator password upfront
+sudo -v
+
+# Keep-alive: update existing `sudo` time stamp until this script has finished
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+###############################################################################
+# General UI/UX                                                               #
+###############################################################################
+
+# Set computer name (as done via System Preferences → Sharing)
+sudo scutil --set ComputerName "MacBook"
+sudo scutil --set HostName "MacBook"
+sudo scutil --set LocalHostName "MacBook"
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "MacBook"
+
+# Disable the sound effects on boot
+sudo nvram SystemAudioVolume=" "
+
+# Always show scrollbars
+defaults write NSGlobalDomain AppleShowScrollBars -string "Always"
+
+# Save to disk (not to iCloud) by default
+defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+
+# Automatically quit printer app once the print jobs complete
+defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
+
+###############################################################################
+# Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
+###############################################################################
+
+# Trackpad: enable tap to click for this user and for the login screen
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Trackpad: map bottom right corner to right-click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadCornerSecondaryClick -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.trackpadCornerClickBehavior -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+
+# Set a blazingly fast keyboard repeat rate
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# Set language and text formats
+defaults write NSGlobalDomain AppleLanguages -array "en"
+defaults write NSGlobalDomain AppleLocale -string "en_US@currency=USD"
+defaults write NSGlobalDomain AppleMeasurementUnits -string "Inches"
+defaults write NSGlobalDomain AppleMetricUnits -bool false
+
+###############################################################################
+# Finder                                                                      #
+###############################################################################
+
+# Show hidden files by default
+defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# Show all filename extensions
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+# Show status bar
+defaults write com.apple.finder ShowStatusBar -bool true
+
+# Show path bar
+defaults write com.apple.finder ShowPathbar -bool true
+
+# Display full POSIX path as Finder window title
+defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
+
+# Keep folders on top when sorting by name
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+
+# When performing a search, search the current folder by default
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+
+# Disable the warning when changing a file extension
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+# Avoid creating .DS_Store files on network or USB volumes
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+
+# Use list view in all Finder windows by default
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+
+##############################################################################
+# Dock, Dashboard, and hot corners                                            #
+###############################################################################
+
+# Set the icon size of Dock items
+defaults write com.apple.dock tilesize -int 46
+
+# Change minimize/maximize window effect
+defaults write com.apple.dock mineffect -string "scale"
+
+# Minimize windows into their application's icon
+defaults write com.apple.dock minimize-to-application -bool true
+
+# Show indicator lights for open applications in the Dock
+defaults write com.apple.dock show-process-indicators -bool true
+
+# Don't automatically rearrange Spaces based on most recent use
+defaults write com.apple.dock mru-spaces -bool false
+
+# Remove the auto-hiding Dock delay
+defaults write com.apple.dock autohide-delay -float 0
+
+# Remove the animation when hiding/showing the Dock
+defaults write com.apple.dock autohide-time-modifier -float 0
+
+# Automatically hide and show the Dock
+defaults write com.apple.dock autohide -bool true
+
+# Make Dock icons of hidden applications translucent
+defaults write com.apple.dock showhidden -bool true
+
+###############################################################################
+# Terminal & iTerm 2                                                          #
+###############################################################################
+
+# Only use UTF-8 in Terminal.app
+defaults write com.apple.terminal StringEncodings -array 4
+
+# Install custom keyboard shortcuts
+if [ -f "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml" ]; then
+  echo "🔄 Importing keyboard shortcuts..."
+  defaults import com.apple.symbolichotkeys "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml"
+fi
+
+# Import Raycast preferences if available
+if [ -f "$ENVIRONMENTS_DIR/macos/Raycast.rayconfig" ] && [ -d "/Applications/Raycast.app" ]; then
+  echo "🔄 Raycast config found. Please import manually from: $ENVIRONMENTS_DIR/macos/Raycast.rayconfig"
+fi
+
+###############################################################################
+# Kill affected applications                                                  #
+###############################################################################
+
+for app in "Activity Monitor" "Address Book" "Calendar" "Contacts" "cfprefsd" \
+  "Dock" "Finder" "Mail" "Messages" "Photos" "Safari" "SystemUIServer" \
+  "Terminal" "iCal"; do
+  killall "${app}" &> /dev/null
+done
+
+echo "✅ macOS defaults configured. Some changes require a logout/restart to take effect."#
+
+```
+
+`/dotfiles/environments/macos/dependencies.sh`:
+
+```sh
+#!/bin/bash
+# macOS-specific dependencies installer
+
+echo "🍎 Installing macOS-specific dependencies..."
+
+# Check if Homebrew is installed
+if ! command -v brew &>/dev/null; then
+  echo "🍺 Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  
+  # Add Homebrew to PATH based on architecture
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    # Apple Silicon
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  else
+    # Intel
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+else
+  echo "✅ Homebrew already installed"
+fi
+
+# Install essential command line tools
+echo "📦 Installing CLI tools..."
+brew install \
+  git \
+  neovim \
+  tmux \
+  ripgrep \
+  fzf \
+  bat \
+  exa \
+  fd \
+  jq \
+  starship \
+  zsh
+
+# Install Oh My Zsh if not already installed
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  echo "🔧 Installing Oh My Zsh..."
+  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
+
+# Install ZSH plugins
+brew install zsh-autosuggestions zsh-syntax-highlighting
+
+# Install Node.js environment
+echo "📦 Installing Node.js environment..."
+brew install nvm
+mkdir -p "$HOME/.nvm"
+
+# Install development applications
+echo "📦 Installing development applications..."
+brew install --cask \
+  visual-studio-code \
+  wezterm \
+  iterm2 \
+  raycast
+
+# Install fonts
+echo "📦 Installing fonts..."
+brew tap homebrew/cask-fonts
+brew install --cask font-victor-mono-nerd-font
+
+echo "✅ macOS dependencies installed successfully!"
+
+```
+
+`/dotfiles/environments/macos/macos-keyboard-shortcuts.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppleSymbolicHotKeys</key>
+	<dict>
+		<key>15</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>16</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>164</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>65535</integer>
+					<integer>65535</integer>
+					<integer>0</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>17</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>18</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>19</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>190</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>113</integer>
+					<integer>12</integer>
+					<integer>8388608</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>20</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>21</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>22</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>23</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>24</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>25</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>26</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>60</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>262144</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>61</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>64</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1048576</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>65</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>79</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>80</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>81</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>82</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
+
+```
+
+`/dotfiles/environments/macos/zsh.aliases`:
+
+```aliases
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"
+
+```
+
+`/dotfiles/environments/macos/zsh.configuration`:
+
+```configuration
+# macOS-specific configuration
+
+# Homebrew configuration
+export HOMEBREW_PREFIX="{{ .chezmoi.homeDir }}/homebrew"
+if [ -d "/opt/homebrew" ]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [ -d "/usr/local" ]; then
+  export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Enable FzF (macOS Homebrew installation)
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+fi
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+fi
+
+# Enable NVM (macOS Homebrew installation)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# Enable ZSH Autosuggestions plugin via Homebrew
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Google Cloud SDK setup (macOS specific)
+source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
+source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
+
+# Display welcome message
+echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"
+
+```
+
+`/dotfiles/environments/macos/zsh.functions`:
+
+```functions
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}
+
+# pbcopy_files function (macOS specific)
+pbcopy_files() {
+  setopt nullglob  # Allow wildcards with no matches
+
+  local save_to_folder=false
+  local output_folder="pbcopy_files_output"
+  local target_path=""
+  local processed_count=0
+  local root_folder=$(basename "$(pwd)")
+  export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+  # Parse command line options
+  while getopts ":s" opt; do
+    case ${opt} in
+      s ) save_to_folder=true ;;
+      \? ) echo "\033[1;31mError: Invalid option: -$OPTARG\033[0m" >&2; return 1 ;;
+    esac
+  done
+  shift $((OPTIND -1))
+
+  # Check if a target path is provided
+  if [ $# -eq 0 ]; then
+    echo "\033[1;31mError: No target path provided.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  target_path="$1"
+  local base_path=$(pwd)  # Get the current working directory (root path)
+
+  # Function to determine the correct comment style based on file extension
+  get_comment_style() {
+    local filename="$1"
+    case "$filename" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) echo "//" ;;
+      *.css|*.html) echo "/* */" ;;
+      *.lua) echo "--" ;;
+      *.py|*.rb|*.sh|*.zsh|*.bash|*.ksh) echo "#" ;;
+      *.c|*.cpp|*.h|*.hpp|*.java|*.go|*.swift) echo "//" ;;
+      *) echo "/* */" ;;
+    esac
+  }
+
+  # Function to sanitize file path for use as a filename
+  sanitize_path() {
+    echo "$1" | sed "s|^\./||" | sed "s|/|>|g"
+  }
+
+  # Process an individual file
+  process_file() {
+    local file="$1"
+    local comment_style=$(get_comment_style "$file")
+    local relative_path="${file#$base_path/}"
+
+    # Determine if it's a block comment style (like /* ... */)
+    if [[ "$comment_style" == "/* */" ]]; then
+      local content="/* Current file: $relative_path */\n$(cat "$file")"
+    else
+      local content="$comment_style Current file: $relative_path\n$(cat "$file")"
+    fi
+
+    if $save_to_folder; then
+      local sanitized_path="${root_folder}>$(sanitize_path "$relative_path")"
+      echo -e "$content" > "$output_folder/$sanitized_path"
+    else
+      echo -e "$content" | pbcopy
+    fi
+
+    ((processed_count++))
+  }
+
+  # Process a folder recursively
+  process_files() {
+    local dir="$1"
+
+    for file in "$dir"/*; do
+      if [ -f "$file" ]; then
+        local relative_path="${file#$base_path/}"
+        echo -n "Process $relative_path? (Enter/s/q): "
+        read -k 1 user_input
+        echo
+        case $user_input in
+          s|S) echo "Skipped." ;;
+          q|Q) echo "Quitting..."; return ;;
+          *) process_file "$file" ;;
+        esac
+      elif [ -d "$file" ]; then
+        process_files "$file"
+      fi
+    done
+  }
+
+  # Create or clear output folder if saving to folder
+  if $save_to_folder; then
+    if [ -d "$output_folder" ]; then
+      echo "Removing existing output folder..."
+      rm -rf "$output_folder"
+    fi
+    mkdir -p "$output_folder"
+    echo "Created fresh output folder: $output_folder"
+  fi
+
+  # Process the target path
+  if [ -f "$target_path" ]; then
+    process_file "$target_path"
+  elif [ -d "$target_path" ]; then
+    process_files "$target_path"
+  else
+    echo "\033[1;31mError: $target_path is not a valid file or folder.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  # Print summary
+  if $save_to_folder; then
+    echo "Saved $processed_count file(s) to $output_folder/"
+  else
+    echo "Copied $processed_count file(s) to clipboard."
+  fi
+}
+
+```
+
+`/dotfiles/environments/macos/zsh.plugins`:
+
+```plugins
+# macOS-specific plugins
+plugins+=(brew macos)
+
+```
+
+`/dotfiles/home/nvim/LICENSE`:
+
+```
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+```
+
+`/dotfiles/home/nvim/README.md`:
+
+```md
+**This repo is supposed to used as config by NvChad users!**
+
+- The main nvchad repo (NvChad/NvChad) is used as a plugin by this repo.
+- So you just import its modules , like `require "nvchad.options" , require "nvchad.mappings"`
+- So you can delete the .git from this repo ( when you clone it locally ) or fork it :)
+
+# Credits
+
+1) Lazyvim starter https://github.com/LazyVim/starter as nvchad's starter was inspired by Lazyvim's . It made a lot of things easier!
+
+```
+
+`/dotfiles/home/nvim/init.lua`:
+
+```lua
+vim.g.base46_cache = vim.fn.stdpath "data" .. "/base46/"
+vim.g.mapleader = " "
+
+-- bootstrap lazy and all plugins
+local lazypath = vim.fn.stdpath "data" .. "/lazy/lazy.nvim"
+
+if not vim.uv.fs_stat(lazypath) then
+  local repo = "https://github.com/folke/lazy.nvim.git"
+  vim.fn.system { "git", "clone", "--filter=blob:none", repo, "--branch=stable", lazypath }
+end
+
+vim.opt.rtp:prepend(lazypath)
+
+local lazy_config = require "configs.lazy"
+
+-- load plugins
+require("lazy").setup({
+  {
+    "NvChad/NvChad",
+    lazy = false,
+    branch = "v2.5",
+    import = "nvchad.plugins",
+  },
+
+  { import = "plugins" },
+}, lazy_config)
+
+-- load theme
+dofile(vim.g.base46_cache .. "defaults")
+dofile(vim.g.base46_cache .. "statusline")
+
+require "options"
+require "nvchad.autocmds"
+
+vim.schedule(function()
+  require "mappings"
+end)
+
+```
+
+`/dotfiles/home/nvim/lazy-lock.json`:
+
+```json
+{
+  "LuaSnip": { "branch": "master", "commit": "c9b9a22904c97d0eb69ccb9bab76037838326817" },
+  "NvChad": { "branch": "v2.5", "commit": "6f25b2739684389ca69ea8229386c098c566c408" },
+  "base46": { "branch": "v2.5", "commit": "fde7a2cd54599e148d376f82980407c2d24b0fa2" },
+  "cmp-buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
+  "cmp-nvim-lsp": { "branch": "main", "commit": "99290b3ec1322070bcfb9e846450a46f6efa50f0" },
+  "cmp-nvim-lua": { "branch": "main", "commit": "f12408bdb54c39c23e67cab726264c10db33ada8" },
+  "cmp-path": { "branch": "main", "commit": "91ff86cd9c29299a64f968ebb45846c485725f23" },
+  "cmp_luasnip": { "branch": "master", "commit": "98d9cb5c2c38532bd9bdb481067b20fea8f32e90" },
+  "conform.nvim": { "branch": "master", "commit": "8ed162b0637d4c4f69ebe3e8e49b35662a82e137" },
+  "friendly-snippets": { "branch": "main", "commit": "efff286dd74c22f731cdec26a70b46e5b203c619" },
+  "gitsigns.nvim": { "branch": "main", "commit": "8b00147519d6f8353867d5d0b55f587306b0cfb6" },
+  "indent-blankline.nvim": { "branch": "master", "commit": "e10626f7fcd51ccd56d7ffc00883ba7e0aa28f78" },
+  "lazy.nvim": { "branch": "main", "commit": "ac21a639c7ecfc8b822dcc9455deceea3778f839" },
+  "mason.nvim": { "branch": "main", "commit": "f9f3b464dda319288b8ce592e53f0d9cf9ca8b4e" },
+  "menu": { "branch": "main", "commit": "7769b17c2a131108c02b10e9f844e504aa605cc2" },
+  "minty": { "branch": "main", "commit": "6dce9f097667862537823d515a0250ce58faab05" },
+  "nvim-autopairs": { "branch": "master", "commit": "68f0e5c3dab23261a945272032ee6700af86227a" },
+  "nvim-cmp": { "branch": "main", "commit": "12509903a5723a876abd65953109f926f4634c30" },
+  "nvim-lint": { "branch": "master", "commit": "6e9dd545a1af204c4022a8fcd99727ea41ffdcc8" },
+  "nvim-lspconfig": { "branch": "master", "commit": "7af2c37192deae28d1305ae9e68544f7fb5408e1" },
+  "nvim-tree.lua": { "branch": "master", "commit": "80523101f0ae48b7f1990e907b685a3d79776c01" },
+  "nvim-treesitter": { "branch": "master", "commit": "00a513f87ee3c339c2024b08db3eb63ba7736ed6" },
+  "nvim-web-devicons": { "branch": "master", "commit": "1020869742ecb191f260818234517f4a1515cfe8" },
+  "plenary.nvim": { "branch": "master", "commit": "857c5ac632080dba10aae49dba902ce3abf91b35" },
+  "telescope.nvim": { "branch": "master", "commit": "78857db9e8d819d3cc1a9a7bdc1d39d127a36495" },
+  "ts-comments.nvim": { "branch": "main", "commit": "872dcfa0418f4a33b7437fb4d9f4e89f2f000d74" },
+  "ui": { "branch": "v3.0", "commit": "f5576f0499d0a7bf053991cba4564d73a55af875" },
+  "volt": { "branch": "main", "commit": "3bedb1576db574af160643eea7df3b09dbe5ee9c" },
+  "which-key.nvim": { "branch": "main", "commit": "5bf7a73fe851896d5ac26d313db849bf00f45b78" }
+}
+
+```
+
+`/dotfiles/home/nvim/lua/chadrc.lua`:
+
+```lua
+-- This file needs to have same structure as nvconfig.lua
+-- https://github.com/NvChad/ui/blob/v2.5/lua/nvconfig.lua
+
+---@type ChadrcConfig
+local M = {}
+
+M.base46 = {
+  theme = "nord",
+
+  hl_override = {
+    Comment = { italic = true },
+    ["@comment"] = { italic = true },
+  },
+}
+
+M.nvdash = {
+  load_on_startup = true,
+  header = {
+    "   ⣴⣶⣤⡤⠦⣤⣀⣤⠆     ⣈⣭⣿⣶⣿⣦⣼⣆          ",
+    "    ⠉⠻⢿⣿⠿⣿⣿⣶⣦⠤⠄⡠⢾⣿⣿⡿⠋⠉⠉⠻⣿⣿⡛⣦       ",
+    "          ⠈⢿⣿⣟⠦ ⣾⣿⣿⣷    ⠻⠿⢿⣿⣧⣄     ",
+    "           ⣸⣿⣿⢧ ⢻⠻⣿⣿⣷⣄⣀⠄⠢⣀⡀⠈⠙⠿⠄    ",
+    "          ⢠⣿⣿⣿⠈    ⣻⣿⣿⣿⣿⣿⣿⣿⣛⣳⣤⣀⣀   ",
+    "   ⢠⣧⣶⣥⡤⢄ ⣸⣿⣿⠘  ⢀⣴⣿⣿⡿⠛⣿⣿⣧⠈⢿⠿⠟⠛⠻⠿⠄  ",
+    "  ⣰⣿⣿⠛⠻⣿⣿⡦⢹⣿⣷   ⢊⣿⣿⡏  ⢸⣿⣿⡇ ⢀⣠⣄⣾⠄   ",
+    " ⣠⣿⠿⠛ ⢀⣿⣿⣷⠘⢿⣿⣦⡀ ⢸⢿⣿⣿⣄ ⣸⣿⣿⡇⣪⣿⡿⠿⣿⣷⡄  ",
+    " ⠙⠃   ⣼⣿⡟  ⠈⠻⣿⣿⣦⣌⡇⠻⣿⣿⣷⣿⣿⣿ ⣿⣿⡇ ⠛⠻⢷⣄ ",
+    "      ⢻⣿⣿⣄   ⠈⠻⣿⣿⣿⣷⣿⣿⣿⣿⣿⡟ ⠫⢿⣿⡆     ",
+    "       ⠻⣿⣿⣿⣿⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⡟⢀⣀⣤⣾⡿⠃     ",
+    "                                   ",
+    "                                   ",
+  },
+}
+
+M.ui = {
+  theme = "nord",
+
+  statusline = {
+    theme = "default",
+    separator_style = "round",
+  },
+
+  tabufline = {
+    enabled = false,
+  },
+
+  -- term = {
+  -- enabled = false,
+  -- },
+}
+
+return M
+
+```
+
+`/dotfiles/home/nvim/lua/configs/comment.lua`:
+
+```lua
+return {
+  -- ignore = "^$", -- ignore empty lines
+  -- pre_hook = require("ts_context_commentstring.integrations.comment_nvim").create_pre_hook,
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/commentstring.lua`:
+
+```lua
+return {
+  enable_autocmd = false,
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/conform.lua`:
+
+```lua
+local options = {
+  formatters_by_ft = {
+    lua = { "stylua" },
+
+    vue = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    javascript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    javascriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["javascript.jsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    typescript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    typescriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["typescript.tsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    css = { "prettierd", "prettier", stop_after_first = true },
+    html = { "prettierd", "prettier", stop_after_first = true },
+    json = { "prettierd", "prettier", stop_after_first = true },
+    graphql = { "prettierd", "prettier", stop_after_first = true },
+  },
+
+  format_on_save = {
+    -- These options will be passed to conform.format()
+    timeout_ms = 10000,
+    lsp_fallback = true,
+  },
+}
+
+return options
+
+```
+
+`/dotfiles/home/nvim/lua/configs/gitsigns.lua`:
+
+```lua
+local options = {
+  current_line_blame = true, -- Toggle with `:Gitsigns toggle_current_line_blame`
+  current_line_blame_opts = {
+    virt_text = true,
+    virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
+    delay = 0,
+    ignore_whitespace = false,
+    virt_text_priority = 100,
+  },
+  current_line_blame_formatter = " <author>, <author_time:%R> - <summary>",
+}
+
+return options
+
+
+```
+
+`/dotfiles/home/nvim/lua/configs/lazy.lua`:
+
+```lua
+return {
+  defaults = { lazy = true },
+  install = { colorscheme = { "nvchad" } },
+
+  ui = {
+    icons = {
+      ft = "",
+      lazy = "󰂠 ",
+      loaded = "",
+      not_loaded = "",
+    },
+  },
+
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "2html_plugin",
+        "tohtml",
+        "getscript",
+        "getscriptPlugin",
+        "gzip",
+        "logipat",
+        "netrw",
+        "netrwPlugin",
+        "netrwSettings",
+        "netrwFileHandlers",
+        "matchit",
+        "tar",
+        "tarPlugin",
+        "rrhelper",
+        "spellfile_plugin",
+        "vimball",
+        "vimballPlugin",
+        "zip",
+        "zipPlugin",
+        "tutor",
+        "rplugin",
+        "syntax",
+        "synmenu",
+        "optwin",
+        "compiler",
+        "bugreport",
+        "ftplugin",
+      },
+    },
+  },
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/lspconfig.lua`:
+
+```lua
+-- load defaults i.e lua_lsp
+require("nvchad.configs.lspconfig").defaults()
+
+local lspconfig = require "lspconfig"
+
+local servers = { "eslint", "html", "cssls", "lua_ls", "tailwindcss", "volar" }
+local nvlsp = require "nvchad.configs.lspconfig"
+
+-- lsps with default config
+for _, lsp in ipairs(servers) do
+  lspconfig[lsp].setup {
+    on_attach = nvlsp.on_attach,
+    on_init = nvlsp.on_init,
+    capabilities = nvlsp.capabilities,
+  }
+end
+
+local mason_registry = require "mason-registry"
+local typescript_plugin_path = mason_registry.get_package("vue-language-server"):get_install_path()
+  .. "/node_modules/@vue/language-server/node_modules/@vue/typescript-plugin"
+
+-- configuring single server, example: typescript
+lspconfig.ts_ls.setup {
+  on_attach = nvlsp.on_attach,
+  capabilities = nvlsp.capabilities,
+  init_options = {
+    preferences = {
+      disableSuggestions = true,
+    },
+    plugins = {
+      {
+        name = "@vue/typescript-plugin",
+        location = typescript_plugin_path,
+        languages = { "vue" },
+      },
+    },
+  },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "javascript.jsx",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+    "vue",
+  },
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/mason.lua`:
+
+```lua
+local opts = {
+  ensure_installed = {
+    -- lua stuff
+    "lua-language-server",
+    "stylua",
+
+    -- web dev stuff
+    "css-lsp",
+    "html-lsp",
+    "typescript-language-server",
+    "tailwindcss-language-server",
+    "prettier",
+    "prettierd",
+    "eslint-lsp",
+    "eslint_d",
+  },
+}
+
+return opts
+
+```
+
+`/dotfiles/home/nvim/lua/configs/nvim-lint.lua`:
+
+```lua
+local opts = {
+  events = { "BufWritePost", "BufReadPost", "InsertLeave" },
+  linters_by_ft = {
+    javascript = {
+      "eslint_d",
+      -- "eslint",
+    },
+    javascriptreact = {
+      "eslint_d",
+      -- "eslint",
+    },
+    ["javascript.jsx"] = {
+      "eslint_d",
+      -- "eslint",
+    },
+
+    typescript = {
+      "eslint_d",
+      -- "eslint",
+    },
+    typescriptreact = {
+      "eslint_d",
+      -- "eslint",
+    },
+    ["typescript.tsx"] = {
+      "eslint_d",
+      -- "eslint",
+    },
+
+    vue = {
+      "eslint_d",
+      -- "eslint",
+    },
+  },
+}
+
+return opts
+
+-- local lint = require "lint"
+-- local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+--
+-- vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+--   group = lint_augroup,
+--   callback = function()
+--     lint.try_lint()
+--   end,
+-- })
+
+```
+
+`/dotfiles/home/nvim/lua/configs/nvim-tree.lua`:
+
+```lua
+local opts = {
+  view = {
+    adaptive_size = true,
+  },
+  renderer = {
+    icons = {
+      glyphs = {
+        folder = {
+          open = "",
+        },
+      },
+    },
+  },
+}
+
+return opts
+
+
+```
+
+`/dotfiles/home/nvim/lua/configs/treesitter.lua`:
+
+```lua
+local opts = {
+  ensure_installed = {
+    "vim",
+    "lua",
+    "html",
+    "css",
+    "vue",
+    "svelte",
+    "javascript",
+    "typescript",
+    "tsx",
+    "json",
+    "markdown",
+    "markdown_inline",
+    "vimdoc",
+  },
+}
+
+return opts
+
+
+```
+
+`/dotfiles/home/nvim/lua/mappings.lua`:
+
+```lua
+require "nvchad.mappings"
+
+local map = vim.keymap.set
+
+map("n", ";", ":", { desc = "CMD enter command mode" })
+
+map("n", "<leader>x", ":close<CR>", { desc = "Close window" })
+
+map("n", "<leader>v", ":vsplit<CR>", { desc = "Split window vertically" })
+map("n", "<leader>h", ":split<CR>", { desc = "Split window horizontally" })
+
+map("n", "<C-d>", "<C-d>zz", { desc = "Move down half-page" })
+map("n", "<C-u>", "<C-u>zz", { desc = "Move up half-page" })
+
+map("i", "jk", "<ESC>")
+map("i", "<C-s>", "<Esc>:w<CR>", { desc = "Save file in insert mode" })
+
+map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move line down" })
+map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move line up" })
+
+-- Disable default terminal mapping
+map("n", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+map("t", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+
+```
+
+`/dotfiles/home/nvim/lua/options.lua`:
+
+```lua
+require "nvchad.options"
+
+-- 'Hybrid' line numbers (relative + current line)
+vim.wo.number = true
+vim.wo.relativenumber = true
+
+vim.opt.scrolloff = 8 -- Set padding when scrolling
+
+```
+
+`/dotfiles/home/nvim/lua/plugins/init.lua`:
+
+```lua
+return {
+  {
+    "stevearc/conform.nvim",
+    event = "BufWritePre",
+    opts = require "configs.conform",
+  },
+
+  {
+    "folke/ts-comments.nvim",
+    event = "VeryLazy",
+    opts = {},
+  },
+
+  {
+    "mfussenegger/nvim-lint",
+    opts = require "configs.nvim-lint",
+  },
+
+  {
+    "nvim-tree/nvim-tree.lua",
+    cmd = { "NvimTreeToggle", "NvimTreeFocus" },
+    opts = require "configs.nvim-tree",
+  },
+
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      require "configs.lspconfig"
+    end,
+  },
+
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = require "configs.treesitter",
+  },
+
+  {
+    "williamboman/mason.nvim",
+    opts = require "configs.mason",
+  },
+
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = require "configs.gitsigns",
+  },
+}
+
+```
+
+`/dotfiles/home/starship.toml`:
+
+```toml
+format = """
+[](#4C566A)\
+$time\
+[](bg:#434C5E fg:#4C566A)\
+$directory\
+[](fg:#434C5E bg:#3B4252)\
+$git_branch\
+$git_status\
+[](fg:#3B4252 bg:#2E3440)\
+"""
+right_format = """$nodejs"""
+command_timeout = 1000
+
+[directory]
+style = "bg:#434C5E"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+symbol = ""
+style = "bg:#3B4252"
+format = '[ $symbol $branch ]($style)'
+
+[git_status]
+style = "bg:#3B4252"
+format = '[$all_status$ahead_behind ]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:#2E3440 #4C566A"
+format = '[ $symbol ($version) ]($style)'
+
+[time]
+disabled = false
+time_format = "%R" # Hour:Minute Format
+style = "bg:#4C566A"
+format = '[ $time ]($style)'
+
+```
+
+`/dotfiles/home/wezterm/wezterm.lua`:
+
+```lua
+local wezterm = require("wezterm")
+local act = wezterm.action
+
+-- Set default padding
+local default_padding = {
+	left = 8,
+	right = 8,
+	top = 8,
+	bottom = 8,
+}
+
+-- Set padding for Neovim (i.e., no padding)
+local nvim_padding = {
+	left = 0,
+	right = 0,
+	top = 0,
+	bottom = 0,
+}
+
+wezterm.on("update-right-status", function(window, pane)
+	-- Get the current process name
+	local process_name = pane:get_foreground_process_name()
+
+	-- Check if Neovim is running in the active pane
+	if process_name and process_name:find("nvim") then
+		-- Remove padding when Neovim is detected
+		window:set_config_overrides({
+			window_padding = nvim_padding,
+		})
+	else
+		-- Restore default padding when not in Neovim
+		window:set_config_overrides({
+			window_padding = default_padding,
+		})
+	end
+end)
+
+return {
+	color_scheme = "nord",
+	font = wezterm.font("VictorMono Nerd Font", { weight = "Regular", italic = false }),
+
+	adjust_window_size_when_changing_font_size = false,
+
+	font_size = 14.0,
+
+	hide_tab_bar_if_only_one_tab = true,
+
+	native_macos_fullscreen_mode = true,
+
+	window_padding = {
+		left = 0,
+		right = 0,
+		top = 0,
+		bottom = 0,
+	},
+
+	inactive_pane_hsb = {
+		-- NOTE: these values are multipliers, applied on normal pane values
+		saturation = 0.5,
+		brightness = 0.8,
+	},
+
+	keys = {
+		{
+			key = "f",
+			mods = "CMD|CTRL",
+			action = act.ToggleFullScreen,
+		},
+		{
+			key = "[",
+			mods = "CMD",
+			action = act.ActivatePaneDirection("Left"),
+		},
+		{
+			key = "]",
+			mods = "CMD",
+			action = act.ActivatePaneDirection("Right"),
+		},
+		{
+			key = "d",
+			mods = "CMD",
+			action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }),
+		},
+		{
+			key = "d",
+			mods = "CMD|SHIFT",
+			action = act.SplitVertical({ domain = "CurrentPaneDomain" }),
+		},
+		{
+			key = "w",
+			mods = "CMD",
+			action = act.CloseCurrentPane({ confirm = false }),
+		},
+
+		-- Conform to Mac shortcuts for text navigation ([forward | backward] [word | line])
+		-- There are better ways to do this, see copyMode in Wezterm docs
+		{
+			key = "LeftArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bb" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bf" }),
+		},
+
+		{
+			key = "LeftArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOH" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOF" }),
+		},
+	},
+}
+
+```
+
+`/dotfiles/setup.sh`:
+
+```sh
+#!/bin/bash
+set -e  # Exit on error
+
+# Get execution directory (where script was run)
+EXECUTION_DIR="$(pwd)"
+
+# Default environment
+ENVIRONMENT="macos"
+
+for arg in "$@"; do
+  [[ "$arg" == --env=* ]] && ENVIRONMENT="${arg#*=}"
+done
+
+if ! command -v chezmoi &> /dev/null; then
+  sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
+fi
+
+export PATH="$HOME/.local/bin:$PATH"
+
+echo "testing"
+
+chezmoi init ViktorJT
+CHEZMOI_ENVIRONMENT="$ENVIRONMENT" chezmoi apply
+
+```
+
+`/dotfiles/Codebase.txt`:
+
+```txt
+Project Path: dotfiles
+
+Source Tree:
+
+```
+dotfiles
+├── environments
+│   ├── docker-web-dev-db
+│   │   ├── Dockerfile.tmpl
+│   │   ├── README.md
+│   │   ├── docker-compose.yml.tmpl
+│   │   └── dotfiles
+│   └── macos
+│       ├── Raycast.rayconfig
+│       ├── defaults.sh
+│       ├── dependencies.sh
+│       ├── macos-keyboard-shortcuts.xml
+│       ├── zsh.aliases
+│       ├── zsh.configuration
+│       ├── zsh.functions
+│       └── zsh.plugins
+├── home
+│   ├── nvim
+│   │   ├── LICENSE
+│   │   ├── README.md
+│   │   ├── init.lua
+│   │   ├── lazy-lock.json
+│   │   └── lua
+│   │       ├── chadrc.lua
+│   │       ├── configs
+│   │       │   ├── comment.lua
+│   │       │   ├── commentstring.lua
+│   │       │   ├── conform.lua
+│   │       │   ├── gitsigns.lua
+│   │       │   ├── lazy.lua
+│   │       │   ├── lspconfig.lua
+│   │       │   ├── mason.lua
+│   │       │   ├── nvim-lint.lua
+│   │       │   ├── nvim-tree.lua
+│   │       │   └── treesitter.lua
+│   │       ├── mappings.lua
+│   │       ├── options.lua
+│   │       └── plugins
+│   │           └── init.lua
+│   ├── starship.toml
+│   └── wezterm
+│       └── wezterm.lua
+├── scripts
+│   ├── README.md
+│   ├── detect_environment.sh
+│   ├── init_dotfiles.sh
+│   ├── install_chezmoi.sh
+│   ├── install_dependencies.sh
+│   ├── setup_environment.sh
+│   ├── setup_ssh.sh
+│   └── utils
+│       └── logging.sh
+├── setup.sh
+└── Codebase.txt
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/Dockerfile.tmpl`:
+
+```tmpl
+# Use the base image from environments.yaml
+FROM {{ .chezmoidata.environments.docker-web-dev.base_image }}
+
+# Set environment variables
+ARG USERNAME={{ .chezmoidata.environments.docker-web-dev.user }}
+ENV USER $USERNAME
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+  {{ range .chezmoidata.default_packages }} {{ . }} {{ end }} \
+  {{ range .chezmoidata.environments.docker-web-dev.packages }} {{ . }} {{ end }}
+
+# Create a non-root user
+RUN useradd -m -s /bin/zsh $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set user permissions
+USER $USERNAME
+WORKDIR /home/$USERNAME
+
+# Entrypoint
+CMD ["zsh"]
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/README.md`:
+
+```md
+# Docker Development Environment for Synology NAS
+
+This development environment is designed to run on a Synology NAS and be accessed via Mosh from an iPad Pro using Blink Shell.
+
+## Features
+
+- Ubuntu 22.04 base with development tools
+- Zsh with Oh My Zsh
+- Neovim
+- Tmux
+- Mosh for stable iPad connections
+- NVM for Node.js management
+- Starship prompt
+- Chezmoi for dotfile management
+
+## Setup Instructions
+
+### 1. Prepare Your Environment
+
+1. Upload the Dockerfile, docker-compose.yml, and setup.sh to your Synology NAS
+2. Ensure Docker is installed on your Synology NAS
+
+### 2. Build and Start the Container
+
+```bash
+# Navigate to the directory with your files
+cd /volume1/docker/dev-env-setup
+
+# Build and start the container
+docker-compose up -d
+
+# Enter the container
+docker exec -it dev-env zsh
+```
+
+### 3. Run the Setup Script
+
+Once inside the container, run:
+
+```bash
+/root/setup.sh
+```
+
+This will:
+- Generate SSH keys (if needed)
+- Help you configure GitHub access
+- Initialize chezmoi with your dotfiles repository
+- Apply your configurations
+
+### 4. Connect from iPad Pro + Blink Shell
+
+In Blink Shell:
+
+1. Add a new host:
+   - Host: Your Synology NAS IP
+   - Port: 22 (SSH) or 60000-60010 (Mosh)
+   - User: root
+
+2. Connect using Mosh for a stable connection:
+   ```
+   mosh --port=60001 root@your-synology-ip
+   ```
+
+## Using Chezmoi
+
+### Add New Dotfiles
+
+```bash
+# Add a file to be managed
+chezmoi add ~/.config/some-config-file
+
+# Edit a managed file
+chezmoi edit ~/.config/some-config-file
+
+# Apply changes
+chezmoi apply
+```
+
+### Update From Your Repository
+
+```bash
+chezmoi update
+```
+
+### Create/Edit Template Files
+
+Templates allow different settings based on the host machine:
+
+```bash
+chezmoi edit ~/.config/some-config.tmpl
+```
+
+Example template syntax:
+```
+{{- if .data.docker -}}
+# Docker-specific settings
+{{- else -}}
+# Non-Docker settings
+{{- end -}}
+```
+
+## Persistent Storage
+
+Your development environment uses persistent storage at `/volume1/docker/dev-env` on your Synology NAS. This ensures:
+
+- Your dotfiles remain between container restarts
+- SSH keys are preserved
+- Work in progress is saved
+
+## Troubleshooting
+
+### SSH Connection Issues
+
+If you're having trouble connecting to GitHub:
+
+```bash
+ssh -vT git@github.com
+```
+
+### Container Access Issues
+
+If you can't access the container:
+
+```bash
+# Check if container is running
+docker ps | grep dev-env
+
+# Check container logs
+docker logs dev-env
+```
+
+### Mosh Connection Issues
+
+If Mosh isn't connecting:
+
+1. Ensure ports 60000-60010/UDP are open on your Synology firewall
+2. Try specifying a specific port: `mosh --port=60001 root@your-synology-ip`
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/docker-compose.yml.tmpl`:
+
+```tmpl
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-dev
+    stdin_open: true
+    tty: true
+    volumes:
+     - {{ .chezmoidata.environments.docker-web-dev-db.localpath }}:/home/{{ .chezmoidata.environments.docker-web-dev.user }}
+	 depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    container_name: web-db
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: devdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+
+```
+
+`/dotfiles/environments/macos/defaults.sh`:
+
+```sh
+#!/bin/bash
+# macOS system defaults setup
+
+echo "🔧 Configuring macOS system defaults..."
+
+# Ask for the administrator password upfront
+sudo -v
+
+# Keep-alive: update existing `sudo` time stamp until this script has finished
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+###############################################################################
+# General UI/UX                                                               #
+###############################################################################
+
+# Set computer name (as done via System Preferences → Sharing)
+sudo scutil --set ComputerName "MacBook"
+sudo scutil --set HostName "MacBook"
+sudo scutil --set LocalHostName "MacBook"
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "MacBook"
+
+# Disable the sound effects on boot
+sudo nvram SystemAudioVolume=" "
+
+# Always show scrollbars
+defaults write NSGlobalDomain AppleShowScrollBars -string "Always"
+
+# Save to disk (not to iCloud) by default
+defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+
+# Automatically quit printer app once the print jobs complete
+defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
+
+###############################################################################
+# Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
+###############################################################################
+
+# Trackpad: enable tap to click for this user and for the login screen
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Trackpad: map bottom right corner to right-click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadCornerSecondaryClick -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.trackpadCornerClickBehavior -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+
+# Set a blazingly fast keyboard repeat rate
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# Set language and text formats
+defaults write NSGlobalDomain AppleLanguages -array "en"
+defaults write NSGlobalDomain AppleLocale -string "en_US@currency=USD"
+defaults write NSGlobalDomain AppleMeasurementUnits -string "Inches"
+defaults write NSGlobalDomain AppleMetricUnits -bool false
+
+###############################################################################
+# Finder                                                                      #
+###############################################################################
+
+# Show hidden files by default
+defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# Show all filename extensions
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+# Show status bar
+defaults write com.apple.finder ShowStatusBar -bool true
+
+# Show path bar
+defaults write com.apple.finder ShowPathbar -bool true
+
+# Display full POSIX path as Finder window title
+defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
+
+# Keep folders on top when sorting by name
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+
+# When performing a search, search the current folder by default
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+
+# Disable the warning when changing a file extension
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+# Avoid creating .DS_Store files on network or USB volumes
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+
+# Use list view in all Finder windows by default
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+
+##############################################################################
+# Dock, Dashboard, and hot corners                                            #
+###############################################################################
+
+# Set the icon size of Dock items
+defaults write com.apple.dock tilesize -int 46
+
+# Change minimize/maximize window effect
+defaults write com.apple.dock mineffect -string "scale"
+
+# Minimize windows into their application's icon
+defaults write com.apple.dock minimize-to-application -bool true
+
+# Show indicator lights for open applications in the Dock
+defaults write com.apple.dock show-process-indicators -bool true
+
+# Don't automatically rearrange Spaces based on most recent use
+defaults write com.apple.dock mru-spaces -bool false
+
+# Remove the auto-hiding Dock delay
+defaults write com.apple.dock autohide-delay -float 0
+
+# Remove the animation when hiding/showing the Dock
+defaults write com.apple.dock autohide-time-modifier -float 0
+
+# Automatically hide and show the Dock
+defaults write com.apple.dock autohide -bool true
+
+# Make Dock icons of hidden applications translucent
+defaults write com.apple.dock showhidden -bool true
+
+###############################################################################
+# Terminal & iTerm 2                                                          #
+###############################################################################
+
+# Only use UTF-8 in Terminal.app
+defaults write com.apple.terminal StringEncodings -array 4
+
+# Install custom keyboard shortcuts
+if [ -f "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml" ]; then
+  echo "🔄 Importing keyboard shortcuts..."
+  defaults import com.apple.symbolichotkeys "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml"
+fi
+
+# Import Raycast preferences if available
+if [ -f "$ENVIRONMENTS_DIR/macos/Raycast.rayconfig" ] && [ -d "/Applications/Raycast.app" ]; then
+  echo "🔄 Raycast config found. Please import manually from: $ENVIRONMENTS_DIR/macos/Raycast.rayconfig"
+fi
+
+###############################################################################
+# Kill affected applications                                                  #
+###############################################################################
+
+for app in "Activity Monitor" "Address Book" "Calendar" "Contacts" "cfprefsd" \
+  "Dock" "Finder" "Mail" "Messages" "Photos" "Safari" "SystemUIServer" \
+  "Terminal" "iCal"; do
+  killall "${app}" &> /dev/null
+done
+
+echo "✅ macOS defaults configured. Some changes require a logout/restart to take effect."#
+
+```
+
+`/dotfiles/environments/macos/dependencies.sh`:
+
+```sh
+#!/bin/bash
+# macOS-specific dependencies installer
+
+echo "🍎 Installing macOS-specific dependencies..."
+
+# Check if Homebrew is installed
+if ! command -v brew &>/dev/null; then
+  echo "🍺 Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  
+  # Add Homebrew to PATH based on architecture
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    # Apple Silicon
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  else
+    # Intel
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+else
+  echo "✅ Homebrew already installed"
+fi
+
+# Install essential command line tools
+echo "📦 Installing CLI tools..."
+brew install \
+  git \
+  neovim \
+  tmux \
+  ripgrep \
+  fzf \
+  bat \
+  exa \
+  fd \
+  jq \
+  starship \
+  zsh
+
+# Install Oh My Zsh if not already installed
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  echo "🔧 Installing Oh My Zsh..."
+  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
+
+# Install ZSH plugins
+brew install zsh-autosuggestions zsh-syntax-highlighting
+
+# Install Node.js environment
+echo "📦 Installing Node.js environment..."
+brew install nvm
+mkdir -p "$HOME/.nvm"
+
+# Install development applications
+echo "📦 Installing development applications..."
+brew install --cask \
+  visual-studio-code \
+  wezterm \
+  iterm2 \
+  raycast
+
+# Install fonts
+echo "📦 Installing fonts..."
+brew tap homebrew/cask-fonts
+brew install --cask font-victor-mono-nerd-font
+
+echo "✅ macOS dependencies installed successfully!"
+
+```
+
+`/dotfiles/environments/macos/macos-keyboard-shortcuts.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppleSymbolicHotKeys</key>
+	<dict>
+		<key>15</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>16</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>164</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>65535</integer>
+					<integer>65535</integer>
+					<integer>0</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>17</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>18</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>19</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>190</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>113</integer>
+					<integer>12</integer>
+					<integer>8388608</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>20</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>21</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>22</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>23</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>24</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>25</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>26</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>60</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>262144</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>61</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>64</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1048576</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>65</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>79</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>80</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>81</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>82</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
+
+```
+
+`/dotfiles/environments/macos/zsh.aliases`:
+
+```aliases
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"
+
+```
+
+`/dotfiles/environments/macos/zsh.configuration`:
+
+```configuration
+# macOS-specific configuration
+
+# Homebrew configuration
+export HOMEBREW_PREFIX="{{ .chezmoi.homeDir }}/homebrew"
+if [ -d "/opt/homebrew" ]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [ -d "/usr/local" ]; then
+  export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Enable FzF (macOS Homebrew installation)
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+fi
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+fi
+
+# Enable NVM (macOS Homebrew installation)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# Enable ZSH Autosuggestions plugin via Homebrew
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Google Cloud SDK setup (macOS specific)
+source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
+source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
+
+# Display welcome message
+echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"
+
+```
+
+`/dotfiles/environments/macos/zsh.functions`:
+
+```functions
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}
+
+# pbcopy_files function (macOS specific)
+pbcopy_files() {
+  setopt nullglob  # Allow wildcards with no matches
+
+  local save_to_folder=false
+  local output_folder="pbcopy_files_output"
+  local target_path=""
+  local processed_count=0
+  local root_folder=$(basename "$(pwd)")
+  export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+  # Parse command line options
+  while getopts ":s" opt; do
+    case ${opt} in
+      s ) save_to_folder=true ;;
+      \? ) echo "\033[1;31mError: Invalid option: -$OPTARG\033[0m" >&2; return 1 ;;
+    esac
+  done
+  shift $((OPTIND -1))
+
+  # Check if a target path is provided
+  if [ $# -eq 0 ]; then
+    echo "\033[1;31mError: No target path provided.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  target_path="$1"
+  local base_path=$(pwd)  # Get the current working directory (root path)
+
+  # Function to determine the correct comment style based on file extension
+  get_comment_style() {
+    local filename="$1"
+    case "$filename" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) echo "//" ;;
+      *.css|*.html) echo "/* */" ;;
+      *.lua) echo "--" ;;
+      *.py|*.rb|*.sh|*.zsh|*.bash|*.ksh) echo "#" ;;
+      *.c|*.cpp|*.h|*.hpp|*.java|*.go|*.swift) echo "//" ;;
+      *) echo "/* */" ;;
+    esac
+  }
+
+  # Function to sanitize file path for use as a filename
+  sanitize_path() {
+    echo "$1" | sed "s|^\./||" | sed "s|/|>|g"
+  }
+
+  # Process an individual file
+  process_file() {
+    local file="$1"
+    local comment_style=$(get_comment_style "$file")
+    local relative_path="${file#$base_path/}"
+
+    # Determine if it's a block comment style (like /* ... */)
+    if [[ "$comment_style" == "/* */" ]]; then
+      local content="/* Current file: $relative_path */\n$(cat "$file")"
+    else
+      local content="$comment_style Current file: $relative_path\n$(cat "$file")"
+    fi
+
+    if $save_to_folder; then
+      local sanitized_path="${root_folder}>$(sanitize_path "$relative_path")"
+      echo -e "$content" > "$output_folder/$sanitized_path"
+    else
+      echo -e "$content" | pbcopy
+    fi
+
+    ((processed_count++))
+  }
+
+  # Process a folder recursively
+  process_files() {
+    local dir="$1"
+
+    for file in "$dir"/*; do
+      if [ -f "$file" ]; then
+        local relative_path="${file#$base_path/}"
+        echo -n "Process $relative_path? (Enter/s/q): "
+        read -k 1 user_input
+        echo
+        case $user_input in
+          s|S) echo "Skipped." ;;
+          q|Q) echo "Quitting..."; return ;;
+          *) process_file "$file" ;;
+        esac
+      elif [ -d "$file" ]; then
+        process_files "$file"
+      fi
+    done
+  }
+
+  # Create or clear output folder if saving to folder
+  if $save_to_folder; then
+    if [ -d "$output_folder" ]; then
+      echo "Removing existing output folder..."
+      rm -rf "$output_folder"
+    fi
+    mkdir -p "$output_folder"
+    echo "Created fresh output folder: $output_folder"
+  fi
+
+  # Process the target path
+  if [ -f "$target_path" ]; then
+    process_file "$target_path"
+  elif [ -d "$target_path" ]; then
+    process_files "$target_path"
+  else
+    echo "\033[1;31mError: $target_path is not a valid file or folder.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  # Print summary
+  if $save_to_folder; then
+    echo "Saved $processed_count file(s) to $output_folder/"
+  else
+    echo "Copied $processed_count file(s) to clipboard."
+  fi
+}
+
+```
+
+`/dotfiles/environments/macos/zsh.plugins`:
+
+```plugins
+# macOS-specific plugins
+plugins+=(brew macos)
+
+```
+
+`/dotfiles/home/nvim/LICENSE`:
+
+```
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+```
+
+`/dotfiles/home/nvim/README.md`:
+
+```md
+**This repo is supposed to used as config by NvChad users!**
+
+- The main nvchad repo (NvChad/NvChad) is used as a plugin by this repo.
+- So you just import its modules , like `require "nvchad.options" , require "nvchad.mappings"`
+- So you can delete the .git from this repo ( when you clone it locally ) or fork it :)
+
+# Credits
+
+1) Lazyvim starter https://github.com/LazyVim/starter as nvchad's starter was inspired by Lazyvim's . It made a lot of things easier!
+
+```
+
+`/dotfiles/home/nvim/init.lua`:
+
+```lua
+vim.g.base46_cache = vim.fn.stdpath "data" .. "/base46/"
+vim.g.mapleader = " "
+
+-- bootstrap lazy and all plugins
+local lazypath = vim.fn.stdpath "data" .. "/lazy/lazy.nvim"
+
+if not vim.uv.fs_stat(lazypath) then
+  local repo = "https://github.com/folke/lazy.nvim.git"
+  vim.fn.system { "git", "clone", "--filter=blob:none", repo, "--branch=stable", lazypath }
+end
+
+vim.opt.rtp:prepend(lazypath)
+
+local lazy_config = require "configs.lazy"
+
+-- load plugins
+require("lazy").setup({
+  {
+    "NvChad/NvChad",
+    lazy = false,
+    branch = "v2.5",
+    import = "nvchad.plugins",
+  },
+
+  { import = "plugins" },
+}, lazy_config)
+
+-- load theme
+dofile(vim.g.base46_cache .. "defaults")
+dofile(vim.g.base46_cache .. "statusline")
+
+require "options"
+require "nvchad.autocmds"
+
+vim.schedule(function()
+  require "mappings"
+end)
+
+```
+
+`/dotfiles/home/nvim/lazy-lock.json`:
+
+```json
+{
+  "LuaSnip": { "branch": "master", "commit": "c9b9a22904c97d0eb69ccb9bab76037838326817" },
+  "NvChad": { "branch": "v2.5", "commit": "6f25b2739684389ca69ea8229386c098c566c408" },
+  "base46": { "branch": "v2.5", "commit": "fde7a2cd54599e148d376f82980407c2d24b0fa2" },
+  "cmp-buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
+  "cmp-nvim-lsp": { "branch": "main", "commit": "99290b3ec1322070bcfb9e846450a46f6efa50f0" },
+  "cmp-nvim-lua": { "branch": "main", "commit": "f12408bdb54c39c23e67cab726264c10db33ada8" },
+  "cmp-path": { "branch": "main", "commit": "91ff86cd9c29299a64f968ebb45846c485725f23" },
+  "cmp_luasnip": { "branch": "master", "commit": "98d9cb5c2c38532bd9bdb481067b20fea8f32e90" },
+  "conform.nvim": { "branch": "master", "commit": "8ed162b0637d4c4f69ebe3e8e49b35662a82e137" },
+  "friendly-snippets": { "branch": "main", "commit": "efff286dd74c22f731cdec26a70b46e5b203c619" },
+  "gitsigns.nvim": { "branch": "main", "commit": "8b00147519d6f8353867d5d0b55f587306b0cfb6" },
+  "indent-blankline.nvim": { "branch": "master", "commit": "e10626f7fcd51ccd56d7ffc00883ba7e0aa28f78" },
+  "lazy.nvim": { "branch": "main", "commit": "ac21a639c7ecfc8b822dcc9455deceea3778f839" },
+  "mason.nvim": { "branch": "main", "commit": "f9f3b464dda319288b8ce592e53f0d9cf9ca8b4e" },
+  "menu": { "branch": "main", "commit": "7769b17c2a131108c02b10e9f844e504aa605cc2" },
+  "minty": { "branch": "main", "commit": "6dce9f097667862537823d515a0250ce58faab05" },
+  "nvim-autopairs": { "branch": "master", "commit": "68f0e5c3dab23261a945272032ee6700af86227a" },
+  "nvim-cmp": { "branch": "main", "commit": "12509903a5723a876abd65953109f926f4634c30" },
+  "nvim-lint": { "branch": "master", "commit": "6e9dd545a1af204c4022a8fcd99727ea41ffdcc8" },
+  "nvim-lspconfig": { "branch": "master", "commit": "7af2c37192deae28d1305ae9e68544f7fb5408e1" },
+  "nvim-tree.lua": { "branch": "master", "commit": "80523101f0ae48b7f1990e907b685a3d79776c01" },
+  "nvim-treesitter": { "branch": "master", "commit": "00a513f87ee3c339c2024b08db3eb63ba7736ed6" },
+  "nvim-web-devicons": { "branch": "master", "commit": "1020869742ecb191f260818234517f4a1515cfe8" },
+  "plenary.nvim": { "branch": "master", "commit": "857c5ac632080dba10aae49dba902ce3abf91b35" },
+  "telescope.nvim": { "branch": "master", "commit": "78857db9e8d819d3cc1a9a7bdc1d39d127a36495" },
+  "ts-comments.nvim": { "branch": "main", "commit": "872dcfa0418f4a33b7437fb4d9f4e89f2f000d74" },
+  "ui": { "branch": "v3.0", "commit": "f5576f0499d0a7bf053991cba4564d73a55af875" },
+  "volt": { "branch": "main", "commit": "3bedb1576db574af160643eea7df3b09dbe5ee9c" },
+  "which-key.nvim": { "branch": "main", "commit": "5bf7a73fe851896d5ac26d313db849bf00f45b78" }
+}
+
+```
+
+`/dotfiles/home/nvim/lua/chadrc.lua`:
+
+```lua
+-- This file needs to have same structure as nvconfig.lua
+-- https://github.com/NvChad/ui/blob/v2.5/lua/nvconfig.lua
+
+---@type ChadrcConfig
+local M = {}
+
+M.base46 = {
+  theme = "nord",
+
+  hl_override = {
+    Comment = { italic = true },
+    ["@comment"] = { italic = true },
+  },
+}
+
+M.nvdash = {
+  load_on_startup = true,
+  header = {
+    "   ⣴⣶⣤⡤⠦⣤⣀⣤⠆     ⣈⣭⣿⣶⣿⣦⣼⣆          ",
+    "    ⠉⠻⢿⣿⠿⣿⣿⣶⣦⠤⠄⡠⢾⣿⣿⡿⠋⠉⠉⠻⣿⣿⡛⣦       ",
+    "          ⠈⢿⣿⣟⠦ ⣾⣿⣿⣷    ⠻⠿⢿⣿⣧⣄     ",
+    "           ⣸⣿⣿⢧ ⢻⠻⣿⣿⣷⣄⣀⠄⠢⣀⡀⠈⠙⠿⠄    ",
+    "          ⢠⣿⣿⣿⠈    ⣻⣿⣿⣿⣿⣿⣿⣿⣛⣳⣤⣀⣀   ",
+    "   ⢠⣧⣶⣥⡤⢄ ⣸⣿⣿⠘  ⢀⣴⣿⣿⡿⠛⣿⣿⣧⠈⢿⠿⠟⠛⠻⠿⠄  ",
+    "  ⣰⣿⣿⠛⠻⣿⣿⡦⢹⣿⣷   ⢊⣿⣿⡏  ⢸⣿⣿⡇ ⢀⣠⣄⣾⠄   ",
+    " ⣠⣿⠿⠛ ⢀⣿⣿⣷⠘⢿⣿⣦⡀ ⢸⢿⣿⣿⣄ ⣸⣿⣿⡇⣪⣿⡿⠿⣿⣷⡄  ",
+    " ⠙⠃   ⣼⣿⡟  ⠈⠻⣿⣿⣦⣌⡇⠻⣿⣿⣷⣿⣿⣿ ⣿⣿⡇ ⠛⠻⢷⣄ ",
+    "      ⢻⣿⣿⣄   ⠈⠻⣿⣿⣿⣷⣿⣿⣿⣿⣿⡟ ⠫⢿⣿⡆     ",
+    "       ⠻⣿⣿⣿⣿⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⡟⢀⣀⣤⣾⡿⠃     ",
+    "                                   ",
+    "                                   ",
+  },
+}
+
+M.ui = {
+  theme = "nord",
+
+  statusline = {
+    theme = "default",
+    separator_style = "round",
+  },
+
+  tabufline = {
+    enabled = false,
+  },
+
+  -- term = {
+  -- enabled = false,
+  -- },
+}
+
+return M
+
+```
+
+`/dotfiles/home/nvim/lua/configs/comment.lua`:
+
+```lua
+return {
+  -- ignore = "^$", -- ignore empty lines
+  -- pre_hook = require("ts_context_commentstring.integrations.comment_nvim").create_pre_hook,
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/commentstring.lua`:
+
+```lua
+return {
+  enable_autocmd = false,
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/conform.lua`:
+
+```lua
+local options = {
+  formatters_by_ft = {
+    lua = { "stylua" },
+
+    vue = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    javascript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    javascriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["javascript.jsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    typescript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    typescriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["typescript.tsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    css = { "prettierd", "prettier", stop_after_first = true },
+    html = { "prettierd", "prettier", stop_after_first = true },
+    json = { "prettierd", "prettier", stop_after_first = true },
+    graphql = { "prettierd", "prettier", stop_after_first = true },
+  },
+
+  format_on_save = {
+    -- These options will be passed to conform.format()
+    timeout_ms = 10000,
+    lsp_fallback = true,
+  },
+}
+
+return options
+
+```
+
+`/dotfiles/home/nvim/lua/configs/gitsigns.lua`:
+
+```lua
+local options = {
+  current_line_blame = true, -- Toggle with `:Gitsigns toggle_current_line_blame`
+  current_line_blame_opts = {
+    virt_text = true,
+    virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
+    delay = 0,
+    ignore_whitespace = false,
+    virt_text_priority = 100,
+  },
+  current_line_blame_formatter = " <author>, <author_time:%R> - <summary>",
+}
+
+return options
+
+
+```
+
+`/dotfiles/home/nvim/lua/configs/lazy.lua`:
+
+```lua
+return {
+  defaults = { lazy = true },
+  install = { colorscheme = { "nvchad" } },
+
+  ui = {
+    icons = {
+      ft = "",
+      lazy = "󰂠 ",
+      loaded = "",
+      not_loaded = "",
+    },
+  },
+
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "2html_plugin",
+        "tohtml",
+        "getscript",
+        "getscriptPlugin",
+        "gzip",
+        "logipat",
+        "netrw",
+        "netrwPlugin",
+        "netrwSettings",
+        "netrwFileHandlers",
+        "matchit",
+        "tar",
+        "tarPlugin",
+        "rrhelper",
+        "spellfile_plugin",
+        "vimball",
+        "vimballPlugin",
+        "zip",
+        "zipPlugin",
+        "tutor",
+        "rplugin",
+        "syntax",
+        "synmenu",
+        "optwin",
+        "compiler",
+        "bugreport",
+        "ftplugin",
+      },
+    },
+  },
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/lspconfig.lua`:
+
+```lua
+-- load defaults i.e lua_lsp
+require("nvchad.configs.lspconfig").defaults()
+
+local lspconfig = require "lspconfig"
+
+local servers = { "eslint", "html", "cssls", "lua_ls", "tailwindcss", "volar" }
+local nvlsp = require "nvchad.configs.lspconfig"
+
+-- lsps with default config
+for _, lsp in ipairs(servers) do
+  lspconfig[lsp].setup {
+    on_attach = nvlsp.on_attach,
+    on_init = nvlsp.on_init,
+    capabilities = nvlsp.capabilities,
+  }
+end
+
+local mason_registry = require "mason-registry"
+local typescript_plugin_path = mason_registry.get_package("vue-language-server"):get_install_path()
+  .. "/node_modules/@vue/language-server/node_modules/@vue/typescript-plugin"
+
+-- configuring single server, example: typescript
+lspconfig.ts_ls.setup {
+  on_attach = nvlsp.on_attach,
+  capabilities = nvlsp.capabilities,
+  init_options = {
+    preferences = {
+      disableSuggestions = true,
+    },
+    plugins = {
+      {
+        name = "@vue/typescript-plugin",
+        location = typescript_plugin_path,
+        languages = { "vue" },
+      },
+    },
+  },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "javascript.jsx",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+    "vue",
+  },
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/mason.lua`:
+
+```lua
+local opts = {
+  ensure_installed = {
+    -- lua stuff
+    "lua-language-server",
+    "stylua",
+
+    -- web dev stuff
+    "css-lsp",
+    "html-lsp",
+    "typescript-language-server",
+    "tailwindcss-language-server",
+    "prettier",
+    "prettierd",
+    "eslint-lsp",
+    "eslint_d",
+  },
+}
+
+return opts
+
+```
+
+`/dotfiles/home/nvim/lua/configs/nvim-lint.lua`:
+
+```lua
+local opts = {
+  events = { "BufWritePost", "BufReadPost", "InsertLeave" },
+  linters_by_ft = {
+    javascript = {
+      "eslint_d",
+      -- "eslint",
+    },
+    javascriptreact = {
+      "eslint_d",
+      -- "eslint",
+    },
+    ["javascript.jsx"] = {
+      "eslint_d",
+      -- "eslint",
+    },
+
+    typescript = {
+      "eslint_d",
+      -- "eslint",
+    },
+    typescriptreact = {
+      "eslint_d",
+      -- "eslint",
+    },
+    ["typescript.tsx"] = {
+      "eslint_d",
+      -- "eslint",
+    },
+
+    vue = {
+      "eslint_d",
+      -- "eslint",
+    },
+  },
+}
+
+return opts
+
+-- local lint = require "lint"
+-- local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+--
+-- vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+--   group = lint_augroup,
+--   callback = function()
+--     lint.try_lint()
+--   end,
+-- })
+
+```
+
+`/dotfiles/home/nvim/lua/configs/nvim-tree.lua`:
+
+```lua
+local opts = {
+  view = {
+    adaptive_size = true,
+  },
+  renderer = {
+    icons = {
+      glyphs = {
+        folder = {
+          open = "",
+        },
+      },
+    },
+  },
+}
+
+return opts
+
+
+```
+
+`/dotfiles/home/nvim/lua/configs/treesitter.lua`:
+
+```lua
+local opts = {
+  ensure_installed = {
+    "vim",
+    "lua",
+    "html",
+    "css",
+    "vue",
+    "svelte",
+    "javascript",
+    "typescript",
+    "tsx",
+    "json",
+    "markdown",
+    "markdown_inline",
+    "vimdoc",
+  },
+}
+
+return opts
+
+
+```
+
+`/dotfiles/home/nvim/lua/mappings.lua`:
+
+```lua
+require "nvchad.mappings"
+
+local map = vim.keymap.set
+
+map("n", ";", ":", { desc = "CMD enter command mode" })
+
+map("n", "<leader>x", ":close<CR>", { desc = "Close window" })
+
+map("n", "<leader>v", ":vsplit<CR>", { desc = "Split window vertically" })
+map("n", "<leader>h", ":split<CR>", { desc = "Split window horizontally" })
+
+map("n", "<C-d>", "<C-d>zz", { desc = "Move down half-page" })
+map("n", "<C-u>", "<C-u>zz", { desc = "Move up half-page" })
+
+map("i", "jk", "<ESC>")
+map("i", "<C-s>", "<Esc>:w<CR>", { desc = "Save file in insert mode" })
+
+map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move line down" })
+map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move line up" })
+
+-- Disable default terminal mapping
+map("n", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+map("t", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+
+```
+
+`/dotfiles/home/nvim/lua/options.lua`:
+
+```lua
+require "nvchad.options"
+
+-- 'Hybrid' line numbers (relative + current line)
+vim.wo.number = true
+vim.wo.relativenumber = true
+
+vim.opt.scrolloff = 8 -- Set padding when scrolling
+
+```
+
+`/dotfiles/home/nvim/lua/plugins/init.lua`:
+
+```lua
+return {
+  {
+    "stevearc/conform.nvim",
+    event = "BufWritePre",
+    opts = require "configs.conform",
+  },
+
+  {
+    "folke/ts-comments.nvim",
+    event = "VeryLazy",
+    opts = {},
+  },
+
+  {
+    "mfussenegger/nvim-lint",
+    opts = require "configs.nvim-lint",
+  },
+
+  {
+    "nvim-tree/nvim-tree.lua",
+    cmd = { "NvimTreeToggle", "NvimTreeFocus" },
+    opts = require "configs.nvim-tree",
+  },
+
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      require "configs.lspconfig"
+    end,
+  },
+
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = require "configs.treesitter",
+  },
+
+  {
+    "williamboman/mason.nvim",
+    opts = require "configs.mason",
+  },
+
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = require "configs.gitsigns",
+  },
+}
+
+```
+
+`/dotfiles/home/starship.toml`:
+
+```toml
+format = """
+[](#4C566A)\
+$time\
+[](bg:#434C5E fg:#4C566A)\
+$directory\
+[](fg:#434C5E bg:#3B4252)\
+$git_branch\
+$git_status\
+[](fg:#3B4252 bg:#2E3440)\
+"""
+right_format = """$nodejs"""
+command_timeout = 1000
+
+[directory]
+style = "bg:#434C5E"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+symbol = ""
+style = "bg:#3B4252"
+format = '[ $symbol $branch ]($style)'
+
+[git_status]
+style = "bg:#3B4252"
+format = '[$all_status$ahead_behind ]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:#2E3440 #4C566A"
+format = '[ $symbol ($version) ]($style)'
+
+[time]
+disabled = false
+time_format = "%R" # Hour:Minute Format
+style = "bg:#4C566A"
+format = '[ $time ]($style)'
+
+```
+
+`/dotfiles/home/wezterm/wezterm.lua`:
+
+```lua
+local wezterm = require("wezterm")
+local act = wezterm.action
+
+-- Set default padding
+local default_padding = {
+	left = 8,
+	right = 8,
+	top = 8,
+	bottom = 8,
+}
+
+-- Set padding for Neovim (i.e., no padding)
+local nvim_padding = {
+	left = 0,
+	right = 0,
+	top = 0,
+	bottom = 0,
+}
+
+wezterm.on("update-right-status", function(window, pane)
+	-- Get the current process name
+	local process_name = pane:get_foreground_process_name()
+
+	-- Check if Neovim is running in the active pane
+	if process_name and process_name:find("nvim") then
+		-- Remove padding when Neovim is detected
+		window:set_config_overrides({
+			window_padding = nvim_padding,
+		})
+	else
+		-- Restore default padding when not in Neovim
+		window:set_config_overrides({
+			window_padding = default_padding,
+		})
+	end
+end)
+
+return {
+	color_scheme = "nord",
+	font = wezterm.font("VictorMono Nerd Font", { weight = "Regular", italic = false }),
+
+	adjust_window_size_when_changing_font_size = false,
+
+	font_size = 14.0,
+
+	hide_tab_bar_if_only_one_tab = true,
+
+	native_macos_fullscreen_mode = true,
+
+	window_padding = {
+		left = 0,
+		right = 0,
+		top = 0,
+		bottom = 0,
+	},
+
+	inactive_pane_hsb = {
+		-- NOTE: these values are multipliers, applied on normal pane values
+		saturation = 0.5,
+		brightness = 0.8,
+	},
+
+	keys = {
+		{
+			key = "f",
+			mods = "CMD|CTRL",
+			action = act.ToggleFullScreen,
+		},
+		{
+			key = "[",
+			mods = "CMD",
+			action = act.ActivatePaneDirection("Left"),
+		},
+		{
+			key = "]",
+			mods = "CMD",
+			action = act.ActivatePaneDirection("Right"),
+		},
+		{
+			key = "d",
+			mods = "CMD",
+			action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }),
+		},
+		{
+			key = "d",
+			mods = "CMD|SHIFT",
+			action = act.SplitVertical({ domain = "CurrentPaneDomain" }),
+		},
+		{
+			key = "w",
+			mods = "CMD",
+			action = act.CloseCurrentPane({ confirm = false }),
+		},
+
+		-- Conform to Mac shortcuts for text navigation ([forward | backward] [word | line])
+		-- There are better ways to do this, see copyMode in Wezterm docs
+		{
+			key = "LeftArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bb" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bf" }),
+		},
+
+		{
+			key = "LeftArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOH" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOF" }),
+		},
+	},
+}
+
+```
+
+`/dotfiles/scripts/README.md`:
+
+```md
+# Setup Scripts
+
+This directory contains modular scripts for setting up a development environment with chezmoi across different platforms.
+
+## Scripts Overview
+
+- `setup.sh` - Main script that orchestrates the setup process
+- `detect_environment.sh` - Detects the current environment (macOS, Linux, Docker)
+- `install_dependencies.sh` - Installs core dependencies based on the environment
+- `install_chezmoi.sh` - Installs chezmoi
+- `setup_ssh.sh` - Sets up SSH keys for GitHub authentication
+- `init_dotfiles.sh` - Initializes dotfiles with chezmoi
+- `setup_environment.sh` - Sets up environment-specific configurations
+
+## One-Line Installation
+
+Use the following command to set up your development environment:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ViktorJT/dotfiles/main/setup.sh | bash
+```
+
+## Modular Structure Benefits
+
+1. **Easier to maintain** - Each script has a single responsibility
+2. **Better readability** - Shorter scripts are easier to understand
+3. **Reusable components** - Scripts can be used independently
+4. **Easier troubleshooting** - Problems can be isolated to specific scripts
+
+## Directory Structure
+
+These scripts should be placed in your dotfiles repository as follows:
+
+```
+dotfiles/
+├── setup.sh              # Main entry point script
+├── scripts/              # Directory for modular scripts
+│   ├── detect_environment.sh
+│   ├── install_dependencies.sh
+│   ├── install_chezmoi.sh
+│   ├── setup_ssh.sh
+│   ├── init_dotfiles.sh
+│   └── setup_environment.sh
+├── home/                 # Dotfiles managed by chezmoi
+│   └── ...
+└── docker/               # Docker-related files
+    ├── Dockerfile
+    └── docker-compose.yml
+```
+
+## Development
+
+To modify or add new functionality:
+
+1. Edit the specific script that handles that functionality
+2. If adding a new script, update `setup.sh` to include it
+3. Test changes in different environments
+4. Commit and push changes to your repository
+
+```
+
+`/dotfiles/scripts/detect_environment.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to detect the current environment
+
+detect_environment() {
+  echo "🔍 Detecting environment..."
+  
+  # Define variables to hold environment information
+  export ENV_NAME=""
+  export ENV_TYPE=""
+  export PKG_MANAGER=""
+  export USE_SUDO=true
+  
+  # Check if we're in a Docker container
+  if [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; then
+    ENV_NAME="Docker"
+    ENV_TYPE="linux"
+    USE_SUDO=false
+    echo "🐳 Docker environment detected"
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    ENV_NAME="macOS"
+    ENV_TYPE="darwin"
+    PKG_MANAGER="brew"
+    echo "🍎 macOS environment detected"
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ENV_NAME="Linux"
+    ENV_TYPE="linux"
+    
+    # Detect Linux distribution
+    if [ -f /etc/debian_version ]; then
+      echo "🐧 Debian/Ubuntu Linux detected"
+      PKG_MANAGER="apt"
+    elif [ -f /etc/fedora-release ]; then
+      echo "🐧 Fedora Linux detected"
+      PKG_MANAGER="dnf"
+    elif [ -f /etc/arch-release ]; then
+      echo "🐧 Arch Linux detected"
+      PKG_MANAGER="pacman"
+    else
+      echo "🐧 Generic Linux detected, will try to determine package manager"
+      if command -v apt &>/dev/null; then
+        PKG_MANAGER="apt"
+      elif command -v dnf &>/dev/null; then
+        PKG_MANAGER="dnf"
+      elif command -v pacman &>/dev/null; then
+        PKG_MANAGER="pacman"
+      else
+        echo "❌ Could not determine package manager. Please install dependencies manually."
+        PKG_MANAGER="unknown"
+      fi
+    fi
+  else
+    echo "⚠️ Unknown environment: $OSTYPE"
+    ENV_NAME="Unknown"
+    ENV_TYPE="unknown"
+  fi
+  
+  echo "✅ Environment detected as: $ENV_NAME using ${PKG_MANAGER:-'no package manager'}"
+}
+
+```
+
+`/dotfiles/scripts/init_dotfiles.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to initialize dotfiles with chezmoi
+
+# Default dotfiles repository
+DEFAULT_REPO="git@github.com:ViktorJT/dotfiles.git"
+HTTPS_REPO="https://github.com/ViktorJT/dotfiles.git"
+
+init_dotfiles() {
+  if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+    echo "⚙ Initializing dotfiles..."
+    
+    # Use the default repo
+    dotfiles_repo=$DEFAULT_REPO
+    
+    # Use HTTPS if requested
+    if [[ "$USE_HTTPS" == true ]]; then
+      echo "Using HTTPS authentication for GitHub"
+      dotfiles_repo=$HTTPS_REPO
+      chezmoi init "$dotfiles_repo"
+    else
+      chezmoi init "$dotfiles_repo" --ssh
+    fi
+    
+    echo "🎨 Applying dotfiles..."
+    chezmoi apply
+  else
+    echo "✅ Chezmoi already initialized!"
+    
+    # Check if we should update dotfiles
+    if [[ "$UPDATE_DOTFILES" == true ]]; then
+      echo "🔄 Updating dotfiles..."
+      chezmoi update
+    else
+      echo "⏭️ Skipping dotfiles update as requested."
+    fi
+  fi
+}
+```
+
+`/dotfiles/scripts/install_chezmoi.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to install chezmoi
+
+install_chezmoi() {
+  if command -v chezmoi &>/dev/null; then
+    echo "✅ Chezmoi already installed"
+  else
+    echo "📦 Installing Chezmoi..."
+    
+    case $ENV_TYPE in
+      darwin)
+        if command -v brew &>/dev/null; then
+          brew install chezmoi
+        else
+          echo "🍺 Installing Homebrew first..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          brew install chezmoi
+        fi
+        ;;
+      *)
+        # Universal install method
+        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $([[ $USE_SUDO == true ]] && echo "/usr/local/bin" || echo "$HOME/.local/bin")
+        
+        # Add to PATH if installed to ~/.local/bin
+        if [[ $USE_SUDO == false ]]; then
+          export PATH="$HOME/.local/bin:$PATH"
+        fi
+        ;;
+    esac
+  fi
+  
+  # Verify installation
+  if command -v chezmoi &>/dev/null; then
+    echo "✅ Chezmoi installed successfully"
+    chezmoi --version
+  else
+    echo "❌ Failed to install Chezmoi"
+    exit 1
+  fi
+}
+
+```
+
+`/dotfiles/scripts/install_dependencies.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to install core dependencies
+
+install_dependencies() {
+  echo "📦 Installing core dependencies..."
+  
+  # First, check for chezmoi - if already installed, skip this step
+  if command -v chezmoi &>/dev/null; then
+    echo "✅ Chezmoi already installed, skipping dependencies installation"
+    return 0
+  fi
+  
+  # Install git if not available
+  if ! command -v git &>/dev/null; then
+    echo "Installing git..."
+    case $PKG_MANAGER in
+      brew)
+        brew install git
+        ;;
+      apt)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt update
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt install -y git
+        ;;
+      dnf)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") dnf install -y git
+        ;;
+      pacman)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") pacman -Sy --noconfirm git
+        ;;
+      *)
+        echo "⚠️ Unknown package manager. Please install git manually."
+        ;;
+    esac
+  fi
+  
+  # Install curl if not available
+  if ! command -v curl &>/dev/null; then
+    echo "Installing curl..."
+    case $PKG_MANAGER in
+      brew)
+        brew install curl
+        ;;
+      apt)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt update
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt install -y curl
+        ;;
+      dnf)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") dnf install -y curl
+        ;;
+      pacman)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") pacman -Sy --noconfirm curl
+        ;;
+      *)
+        echo "⚠️ Unknown package manager. Please install curl manually."
+        ;;
+    esac
+  fi
+  
+  # Install zsh if not available
+  if ! command -v zsh &>/dev/null; then
+    echo "Installing zsh..."
+    case $PKG_MANAGER in
+      brew)
+        brew install zsh
+        ;;
+      apt)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt update
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt install -y zsh
+        ;;
+      dnf)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") dnf install -y zsh
+        ;;
+      pacman)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") pacman -Sy --noconfirm zsh
+        ;;
+      *)
+        echo "⚠️ Unknown package manager. Please install zsh manually."
+        ;;
+    esac
+  fi
+  
+  echo "✅ Core dependencies installed"
+}
+
+```
+
+`/dotfiles/scripts/setup_environment.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to set up environment-specific configurations
+
+setup_environment_specific() {
+  echo "🛠️ Setting up environment-specific configurations..."
+  
+  # Default user info
+  USER_NAME="Viktor"
+  USER_EMAIL="v.jensentorp@gmail.com"
+  
+  # Create chezmoi configuration with environment information
+  echo "📝 Creating chezmoi configuration..."
+  
+  # Determine the current environment 
+  isDocker="false"
+  isMacOS="false"
+  isLinux="false"
+  dockerType=""
+  
+  # Use the detected environment from detect_environment.sh
+  if [[ "$ENV_NAME" == "Docker" ]]; then
+    isDocker="true"
+    
+    # Try to detect Docker container type based on hostname
+    if [[ "$(hostname)" == *"web"* ]]; then
+      dockerType="web"
+    elif [[ "$(hostname)" == *"data"* ]]; then
+      dockerType="data-science"
+    elif [[ "$(hostname)" == *"dev"* ]]; then
+      dockerType="ipad-host"
+    else
+      dockerType="dev"
+    fi
+    
+  elif [[ "$ENV_NAME" == "macOS" ]]; then
+    isMacOS="true"
+  elif [[ "$ENV_NAME" == "Linux" ]]; then
+    isLinux="true"
+  fi
+  
+  # Create chezmoi configuration file
+  mkdir -p "$HOME/.config/chezmoi"
+  cat > "$HOME/.config/chezmoi/chezmoi.toml" << EOF
+# chezmoi configuration file
+
+[data]
+    docker = ${isDocker}
+    dockerType = "${dockerType}"
+    macos = ${isMacOS}
+    linux = ${isLinux}
+    hostname = "$(hostname)"
+    username = "$(whoami)"
+    email = "${USER_EMAIL}"
+    name = "${USER_NAME}"
+EOF
+  
+  # Update git config if not already set
+  if ! git config --global user.name >/dev/null 2>&1; then
+    git config --global user.name "$USER_NAME"
+    git config --global user.email "$USER_EMAIL"
+    echo "✅ Git configuration updated!"
+  else
+    echo "✅ Git configuration already set!"
+  fi
+  
+  echo "✅ Environment configuration set up!"
+}
+```
+
+`/dotfiles/scripts/setup_ssh.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to generate an SSH key and configure Git to use SSH
+
+setup_ssh_key() {
+  HOME_DIR=$HOME
+  SSH_DIR="$HOME_DIR/.ssh"
+
+  # Create .ssh directory if it doesn't exist
+  mkdir -p "$SSH_DIR"
+  chmod 700 "$SSH_DIR"
+
+  # Check if an SSH key already exists
+  if [[ -f "$SSH_DIR/id_ed25519" ]]; then
+  	echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"	
+    echo -e "   ✅  SSH key already exists. Skipping key generation."
+  	echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+    return
+  fi
+
+  # Use provided key name or fallback to `HOSTNAME + timestamp`
+  SSH_KEY_LABEL="${1:-${HOSTNAME}-$(date +%Y%m%d-%H%M%S)}"
+  SSH_KEY_PATH="$SSH_DIR/id_ed25519"
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "      🔑  No SSH key found. Generating a new one..."
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+
+  ssh-keygen -t ed25519 -C "$SSH_KEY_LABEL" -f "$SSH_KEY_PATH" -N ""
+
+  # Fix permissions
+  chmod 600 "$SSH_KEY_PATH"
+
+  # Display SSH key
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "🔓  Your public SSH key (copy this and add it to GitHub):"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  cat "$SSH_KEY_PATH.pub"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "                   📌  Next Steps:"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  echo -e "  1️⃣  Copy the SSH key above and add it to GitHub:"
+  echo -e "      🔗  https://github.com/settings/keys"
+  echo -e ""
+  echo -e "  2️⃣  Test your SSH connection to GitHub:"
+  echo -e "      🛠️   ssh -T git@github.com"
+  echo -e ""
+  echo -e "  3️⃣  If authentication fails, manually add your key:"
+  echo -e "      🔧   ssh-add ~/.ssh/id_ed25519"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+	echo -e ""
+
+  echo -e "       📋  Some useful commands:"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "  • 📝  chezmoi edit ~/.zshrc  - Edit your zsh config"
+  echo -e "  • ⚡  chezmoi apply          - Apply changes"
+  echo -e "  • 🔄  chezmoi update         - Pull latest changes from repo"
+  echo -e "  • 📂  chezmoi cd             - Go to your dotfiles directory"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  echo -e ""
+  echo -e ""
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "       🎉  Your development environment is ready!"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+}
+```
+
+`/dotfiles/scripts/utils/logging.sh`:
+
+```sh
+#!/bin/bash
+
+# Fancy logging functions for consistent output formatting
+# Can be sourced by any script
+
+log_header() {
+  echo ""
+  echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+  echo "┃                                                                              ┃"
+  printf "┃ %-76s ┃\n" "🚀 $1"
+  echo "┃                                                                              ┃"
+  echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+  echo ""
+}
+
+log_section() {
+  echo ""
+  echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+  printf "┃ %-76s ┃\n" "📌 $1"
+  echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+  echo ""
+}
+
+log_step() {
+  printf "   %-74s \n" "🔹 $1"
+}
+
+log_success() {
+  printf "   %-74s \n" "✅ $1"
+}
+
+log_warning() {
+  printf "   %-74s \n" "⚠️  $1"
+}
+
+log_error() {
+  printf "   %-74s \n" "❌ $1"
+}
+
+log_info() {
+  printf "   %-74s \n" "ℹ️  $1"
+}
+
+log_command_output() {
+  echo "   ┌────────────────────────────────────────────────────────────────────────────┐"
+  while IFS= read -r line; do
+    printf "   │ %-74s │\n" "$line"
+  done
+  echo "   └────────────────────────────────────────────────────────────────────────────┘"
+}
+
+log_code_block() {
+  echo "   ┌────────────────────────────────────────────────────────────────────────────┐"
+  echo "$1" | while IFS= read -r line; do
+    printf "   │ %-74s │\n" "$line"
+  done
+  echo "   └────────────────────────────────────────────────────────────────────────────┘"
+}
+
+log_success_block() {
+  echo ""
+  echo "   ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+  echo "   ┃                                                                           ┃"
+  echo "   ┃  🎉 $1                                                              ┃"
+  echo "   ┃                                                                           ┃"
+  echo "   ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+  echo ""
+}
+```
+
+`/dotfiles/setup.sh`:
+
+```sh
+#!/bin/bash
+set -e  # Exit on error
+
+# Get execution directory (where script was run)
+EXECUTION_DIR="$(pwd)"
+
+# Default environment
+ENVIRONMENT="macos"
+
+for arg in "$@"; do
+  [[ "$arg" == --env=* ]] && ENVIRONMENT="${arg#*=}"
+done
+
+if ! command -v chezmoi &> /dev/null; then
+  sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
+fi
+
+export PATH="$HOME/.local/bin:$PATH"
+
+echo "testing"
+
+chezmoi init ViktorJT
+CHEZMOI_ENVIRONMENT="$ENVIRONMENT" chezmoi apply
+
+```
+
+`/dotfiles/Codebase.txt`:
+
+```txt
+Project Path: dotfiles
+
+Source Tree:
+
+```
+dotfiles
+├── environments
+│   ├── docker-web-dev-db
+│   │   ├── Dockerfile.tmpl
+│   │   ├── README.md
+│   │   ├── docker-compose.yml.tmpl
+│   │   └── dotfiles
+│   └── macos
+│       ├── Raycast.rayconfig
+│       ├── defaults.sh
+│       ├── dependencies.sh
+│       ├── macos-keyboard-shortcuts.xml
+│       ├── zsh.aliases
+│       ├── zsh.configuration
+│       ├── zsh.functions
+│       └── zsh.plugins
+├── home
+│   ├── nvim
+│   │   ├── LICENSE
+│   │   ├── README.md
+│   │   ├── init.lua
+│   │   ├── lazy-lock.json
+│   │   └── lua
+│   │       ├── chadrc.lua
+│   │       ├── configs
+│   │       │   ├── comment.lua
+│   │       │   ├── commentstring.lua
+│   │       │   ├── conform.lua
+│   │       │   ├── gitsigns.lua
+│   │       │   ├── lazy.lua
+│   │       │   ├── lspconfig.lua
+│   │       │   ├── mason.lua
+│   │       │   ├── nvim-lint.lua
+│   │       │   ├── nvim-tree.lua
+│   │       │   └── treesitter.lua
+│   │       ├── mappings.lua
+│   │       ├── options.lua
+│   │       └── plugins
+│   │           └── init.lua
+│   ├── starship.toml
+│   └── wezterm
+│       └── wezterm.lua
+├── scripts
+│   ├── README.md
+│   ├── detect_environment.sh
+│   ├── init_dotfiles.sh
+│   ├── install_chezmoi.sh
+│   ├── install_dependencies.sh
+│   ├── setup_environment.sh
+│   ├── setup_ssh.sh
+│   └── utils
+│       └── logging.sh
+└── setup.sh
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/Dockerfile.tmpl`:
+
+```tmpl
+# Use the base image from environments.yaml
+FROM {{ .chezmoidata.environments.docker-web-dev.base_image }}
+
+# Set environment variables
+ARG USERNAME={{ .chezmoidata.environments.docker-web-dev.user }}
+ENV USER $USERNAME
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+  {{ range .chezmoidata.default_packages }} {{ . }} {{ end }} \
+  {{ range .chezmoidata.environments.docker-web-dev.packages }} {{ . }} {{ end }}
+
+# Create a non-root user
+RUN useradd -m -s /bin/zsh $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set user permissions
+USER $USERNAME
+WORKDIR /home/$USERNAME
+
+# Entrypoint
+CMD ["zsh"]
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/README.md`:
+
+```md
+# Docker Development Environment for Synology NAS
+
+This development environment is designed to run on a Synology NAS and be accessed via Mosh from an iPad Pro using Blink Shell.
+
+## Features
+
+- Ubuntu 22.04 base with development tools
+- Zsh with Oh My Zsh
+- Neovim
+- Tmux
+- Mosh for stable iPad connections
+- NVM for Node.js management
+- Starship prompt
+- Chezmoi for dotfile management
+
+## Setup Instructions
+
+### 1. Prepare Your Environment
+
+1. Upload the Dockerfile, docker-compose.yml, and setup.sh to your Synology NAS
+2. Ensure Docker is installed on your Synology NAS
+
+### 2. Build and Start the Container
+
+```bash
+# Navigate to the directory with your files
+cd /volume1/docker/dev-env-setup
+
+# Build and start the container
+docker-compose up -d
+
+# Enter the container
+docker exec -it dev-env zsh
+```
+
+### 3. Run the Setup Script
+
+Once inside the container, run:
+
+```bash
+/root/setup.sh
+```
+
+This will:
+- Generate SSH keys (if needed)
+- Help you configure GitHub access
+- Initialize chezmoi with your dotfiles repository
+- Apply your configurations
+
+### 4. Connect from iPad Pro + Blink Shell
+
+In Blink Shell:
+
+1. Add a new host:
+   - Host: Your Synology NAS IP
+   - Port: 22 (SSH) or 60000-60010 (Mosh)
+   - User: root
+
+2. Connect using Mosh for a stable connection:
+   ```
+   mosh --port=60001 root@your-synology-ip
+   ```
+
+## Using Chezmoi
+
+### Add New Dotfiles
+
+```bash
+# Add a file to be managed
+chezmoi add ~/.config/some-config-file
+
+# Edit a managed file
+chezmoi edit ~/.config/some-config-file
+
+# Apply changes
+chezmoi apply
+```
+
+### Update From Your Repository
+
+```bash
+chezmoi update
+```
+
+### Create/Edit Template Files
+
+Templates allow different settings based on the host machine:
+
+```bash
+chezmoi edit ~/.config/some-config.tmpl
+```
+
+Example template syntax:
+```
+{{- if .data.docker -}}
+# Docker-specific settings
+{{- else -}}
+# Non-Docker settings
+{{- end -}}
+```
+
+## Persistent Storage
+
+Your development environment uses persistent storage at `/volume1/docker/dev-env` on your Synology NAS. This ensures:
+
+- Your dotfiles remain between container restarts
+- SSH keys are preserved
+- Work in progress is saved
+
+## Troubleshooting
+
+### SSH Connection Issues
+
+If you're having trouble connecting to GitHub:
+
+```bash
+ssh -vT git@github.com
+```
+
+### Container Access Issues
+
+If you can't access the container:
+
+```bash
+# Check if container is running
+docker ps | grep dev-env
+
+# Check container logs
+docker logs dev-env
+```
+
+### Mosh Connection Issues
+
+If Mosh isn't connecting:
+
+1. Ensure ports 60000-60010/UDP are open on your Synology firewall
+2. Try specifying a specific port: `mosh --port=60001 root@your-synology-ip`
+
+```
+
+`/dotfiles/environments/docker-web-dev-db/docker-compose.yml.tmpl`:
+
+```tmpl
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-dev
+    stdin_open: true
+    tty: true
+    volumes:
+     - {{ .chezmoidata.environments.docker-web-dev-db.localpath }}:/home/{{ .chezmoidata.environments.docker-web-dev.user }}
+	 depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    container_name: web-db
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: devdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+
+```
+
+`/dotfiles/environments/macos/defaults.sh`:
+
+```sh
+#!/bin/bash
+# macOS system defaults setup
+
+echo "🔧 Configuring macOS system defaults..."
+
+# Ask for the administrator password upfront
+sudo -v
+
+# Keep-alive: update existing `sudo` time stamp until this script has finished
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+###############################################################################
+# General UI/UX                                                               #
+###############################################################################
+
+# Set computer name (as done via System Preferences → Sharing)
+sudo scutil --set ComputerName "MacBook"
+sudo scutil --set HostName "MacBook"
+sudo scutil --set LocalHostName "MacBook"
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "MacBook"
+
+# Disable the sound effects on boot
+sudo nvram SystemAudioVolume=" "
+
+# Always show scrollbars
+defaults write NSGlobalDomain AppleShowScrollBars -string "Always"
+
+# Save to disk (not to iCloud) by default
+defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+
+# Automatically quit printer app once the print jobs complete
+defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
+
+###############################################################################
+# Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
+###############################################################################
+
+# Trackpad: enable tap to click for this user and for the login screen
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Trackpad: map bottom right corner to right-click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadCornerSecondaryClick -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.trackpadCornerClickBehavior -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+
+# Set a blazingly fast keyboard repeat rate
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# Set language and text formats
+defaults write NSGlobalDomain AppleLanguages -array "en"
+defaults write NSGlobalDomain AppleLocale -string "en_US@currency=USD"
+defaults write NSGlobalDomain AppleMeasurementUnits -string "Inches"
+defaults write NSGlobalDomain AppleMetricUnits -bool false
+
+###############################################################################
+# Finder                                                                      #
+###############################################################################
+
+# Show hidden files by default
+defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# Show all filename extensions
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+# Show status bar
+defaults write com.apple.finder ShowStatusBar -bool true
+
+# Show path bar
+defaults write com.apple.finder ShowPathbar -bool true
+
+# Display full POSIX path as Finder window title
+defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
+
+# Keep folders on top when sorting by name
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+
+# When performing a search, search the current folder by default
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+
+# Disable the warning when changing a file extension
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+# Avoid creating .DS_Store files on network or USB volumes
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+
+# Use list view in all Finder windows by default
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+
+##############################################################################
+# Dock, Dashboard, and hot corners                                            #
+###############################################################################
+
+# Set the icon size of Dock items
+defaults write com.apple.dock tilesize -int 46
+
+# Change minimize/maximize window effect
+defaults write com.apple.dock mineffect -string "scale"
+
+# Minimize windows into their application's icon
+defaults write com.apple.dock minimize-to-application -bool true
+
+# Show indicator lights for open applications in the Dock
+defaults write com.apple.dock show-process-indicators -bool true
+
+# Don't automatically rearrange Spaces based on most recent use
+defaults write com.apple.dock mru-spaces -bool false
+
+# Remove the auto-hiding Dock delay
+defaults write com.apple.dock autohide-delay -float 0
+
+# Remove the animation when hiding/showing the Dock
+defaults write com.apple.dock autohide-time-modifier -float 0
+
+# Automatically hide and show the Dock
+defaults write com.apple.dock autohide -bool true
+
+# Make Dock icons of hidden applications translucent
+defaults write com.apple.dock showhidden -bool true
+
+###############################################################################
+# Terminal & iTerm 2                                                          #
+###############################################################################
+
+# Only use UTF-8 in Terminal.app
+defaults write com.apple.terminal StringEncodings -array 4
+
+# Install custom keyboard shortcuts
+if [ -f "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml" ]; then
+  echo "🔄 Importing keyboard shortcuts..."
+  defaults import com.apple.symbolichotkeys "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml"
+fi
+
+# Import Raycast preferences if available
+if [ -f "$ENVIRONMENTS_DIR/macos/Raycast.rayconfig" ] && [ -d "/Applications/Raycast.app" ]; then
+  echo "🔄 Raycast config found. Please import manually from: $ENVIRONMENTS_DIR/macos/Raycast.rayconfig"
+fi
+
+###############################################################################
+# Kill affected applications                                                  #
+###############################################################################
+
+for app in "Activity Monitor" "Address Book" "Calendar" "Contacts" "cfprefsd" \
+  "Dock" "Finder" "Mail" "Messages" "Photos" "Safari" "SystemUIServer" \
+  "Terminal" "iCal"; do
+  killall "${app}" &> /dev/null
+done
+
+echo "✅ macOS defaults configured. Some changes require a logout/restart to take effect."#
+
+```
+
+`/dotfiles/environments/macos/dependencies.sh`:
+
+```sh
+#!/bin/bash
+# macOS-specific dependencies installer
+
+echo "🍎 Installing macOS-specific dependencies..."
+
+# Check if Homebrew is installed
+if ! command -v brew &>/dev/null; then
+  echo "🍺 Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  
+  # Add Homebrew to PATH based on architecture
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    # Apple Silicon
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  else
+    # Intel
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+else
+  echo "✅ Homebrew already installed"
+fi
+
+# Install essential command line tools
+echo "📦 Installing CLI tools..."
+brew install \
+  git \
+  neovim \
+  tmux \
+  ripgrep \
+  fzf \
+  bat \
+  exa \
+  fd \
+  jq \
+  starship \
+  zsh
+
+# Install Oh My Zsh if not already installed
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  echo "🔧 Installing Oh My Zsh..."
+  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
+
+# Install ZSH plugins
+brew install zsh-autosuggestions zsh-syntax-highlighting
+
+# Install Node.js environment
+echo "📦 Installing Node.js environment..."
+brew install nvm
+mkdir -p "$HOME/.nvm"
+
+# Install development applications
+echo "📦 Installing development applications..."
+brew install --cask \
+  visual-studio-code \
+  wezterm \
+  iterm2 \
+  raycast
+
+# Install fonts
+echo "📦 Installing fonts..."
+brew tap homebrew/cask-fonts
+brew install --cask font-victor-mono-nerd-font
+
+echo "✅ macOS dependencies installed successfully!"
+
+```
+
+`/dotfiles/environments/macos/macos-keyboard-shortcuts.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppleSymbolicHotKeys</key>
+	<dict>
+		<key>15</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>16</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>164</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>65535</integer>
+					<integer>65535</integer>
+					<integer>0</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>17</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>18</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>19</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>190</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>113</integer>
+					<integer>12</integer>
+					<integer>8388608</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>20</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>21</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>22</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>23</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>24</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>25</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>26</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>60</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>262144</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>61</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>64</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1048576</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>65</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>79</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>80</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>81</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>82</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
+
+```
+
+`/dotfiles/environments/macos/zsh.aliases`:
+
+```aliases
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"
+
+```
+
+`/dotfiles/environments/macos/zsh.configuration`:
+
+```configuration
+# macOS-specific configuration
+
+# Homebrew configuration
+export HOMEBREW_PREFIX="{{ .chezmoi.homeDir }}/homebrew"
+if [ -d "/opt/homebrew" ]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [ -d "/usr/local" ]; then
+  export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Enable FzF (macOS Homebrew installation)
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+fi
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+fi
+
+# Enable NVM (macOS Homebrew installation)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# Enable ZSH Autosuggestions plugin via Homebrew
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Google Cloud SDK setup (macOS specific)
+source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
+source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
+
+# Display welcome message
+echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"
+
+```
+
+`/dotfiles/environments/macos/zsh.functions`:
+
+```functions
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}
+
+# pbcopy_files function (macOS specific)
+pbcopy_files() {
+  setopt nullglob  # Allow wildcards with no matches
+
+  local save_to_folder=false
+  local output_folder="pbcopy_files_output"
+  local target_path=""
+  local processed_count=0
+  local root_folder=$(basename "$(pwd)")
+  export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+  # Parse command line options
+  while getopts ":s" opt; do
+    case ${opt} in
+      s ) save_to_folder=true ;;
+      \? ) echo "\033[1;31mError: Invalid option: -$OPTARG\033[0m" >&2; return 1 ;;
+    esac
+  done
+  shift $((OPTIND -1))
+
+  # Check if a target path is provided
+  if [ $# -eq 0 ]; then
+    echo "\033[1;31mError: No target path provided.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  target_path="$1"
+  local base_path=$(pwd)  # Get the current working directory (root path)
+
+  # Function to determine the correct comment style based on file extension
+  get_comment_style() {
+    local filename="$1"
+    case "$filename" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) echo "//" ;;
+      *.css|*.html) echo "/* */" ;;
+      *.lua) echo "--" ;;
+      *.py|*.rb|*.sh|*.zsh|*.bash|*.ksh) echo "#" ;;
+      *.c|*.cpp|*.h|*.hpp|*.java|*.go|*.swift) echo "//" ;;
+      *) echo "/* */" ;;
+    esac
+  }
+
+  # Function to sanitize file path for use as a filename
+  sanitize_path() {
+    echo "$1" | sed "s|^\./||" | sed "s|/|>|g"
+  }
+
+  # Process an individual file
+  process_file() {
+    local file="$1"
+    local comment_style=$(get_comment_style "$file")
+    local relative_path="${file#$base_path/}"
+
+    # Determine if it's a block comment style (like /* ... */)
+    if [[ "$comment_style" == "/* */" ]]; then
+      local content="/* Current file: $relative_path */\n$(cat "$file")"
+    else
+      local content="$comment_style Current file: $relative_path\n$(cat "$file")"
+    fi
+
+    if $save_to_folder; then
+      local sanitized_path="${root_folder}>$(sanitize_path "$relative_path")"
+      echo -e "$content" > "$output_folder/$sanitized_path"
+    else
+      echo -e "$content" | pbcopy
+    fi
+
+    ((processed_count++))
+  }
+
+  # Process a folder recursively
+  process_files() {
+    local dir="$1"
+
+    for file in "$dir"/*; do
+      if [ -f "$file" ]; then
+        local relative_path="${file#$base_path/}"
+        echo -n "Process $relative_path? (Enter/s/q): "
+        read -k 1 user_input
+        echo
+        case $user_input in
+          s|S) echo "Skipped." ;;
+          q|Q) echo "Quitting..."; return ;;
+          *) process_file "$file" ;;
+        esac
+      elif [ -d "$file" ]; then
+        process_files "$file"
+      fi
+    done
+  }
+
+  # Create or clear output folder if saving to folder
+  if $save_to_folder; then
+    if [ -d "$output_folder" ]; then
+      echo "Removing existing output folder..."
+      rm -rf "$output_folder"
+    fi
+    mkdir -p "$output_folder"
+    echo "Created fresh output folder: $output_folder"
+  fi
+
+  # Process the target path
+  if [ -f "$target_path" ]; then
+    process_file "$target_path"
+  elif [ -d "$target_path" ]; then
+    process_files "$target_path"
+  else
+    echo "\033[1;31mError: $target_path is not a valid file or folder.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  # Print summary
+  if $save_to_folder; then
+    echo "Saved $processed_count file(s) to $output_folder/"
+  else
+    echo "Copied $processed_count file(s) to clipboard."
+  fi
+}
+
+```
+
+`/dotfiles/environments/macos/zsh.plugins`:
+
+```plugins
+# macOS-specific plugins
+plugins+=(brew macos)
+
+```
+
+`/dotfiles/home/nvim/LICENSE`:
+
+```
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+```
+
+`/dotfiles/home/nvim/README.md`:
+
+```md
+**This repo is supposed to used as config by NvChad users!**
+
+- The main nvchad repo (NvChad/NvChad) is used as a plugin by this repo.
+- So you just import its modules , like `require "nvchad.options" , require "nvchad.mappings"`
+- So you can delete the .git from this repo ( when you clone it locally ) or fork it :)
+
+# Credits
+
+1) Lazyvim starter https://github.com/LazyVim/starter as nvchad's starter was inspired by Lazyvim's . It made a lot of things easier!
+
+```
+
+`/dotfiles/home/nvim/init.lua`:
+
+```lua
+vim.g.base46_cache = vim.fn.stdpath "data" .. "/base46/"
+vim.g.mapleader = " "
+
+-- bootstrap lazy and all plugins
+local lazypath = vim.fn.stdpath "data" .. "/lazy/lazy.nvim"
+
+if not vim.uv.fs_stat(lazypath) then
+  local repo = "https://github.com/folke/lazy.nvim.git"
+  vim.fn.system { "git", "clone", "--filter=blob:none", repo, "--branch=stable", lazypath }
+end
+
+vim.opt.rtp:prepend(lazypath)
+
+local lazy_config = require "configs.lazy"
+
+-- load plugins
+require("lazy").setup({
+  {
+    "NvChad/NvChad",
+    lazy = false,
+    branch = "v2.5",
+    import = "nvchad.plugins",
+  },
+
+  { import = "plugins" },
+}, lazy_config)
+
+-- load theme
+dofile(vim.g.base46_cache .. "defaults")
+dofile(vim.g.base46_cache .. "statusline")
+
+require "options"
+require "nvchad.autocmds"
+
+vim.schedule(function()
+  require "mappings"
+end)
+
+```
+
+`/dotfiles/home/nvim/lazy-lock.json`:
+
+```json
+{
+  "LuaSnip": { "branch": "master", "commit": "c9b9a22904c97d0eb69ccb9bab76037838326817" },
+  "NvChad": { "branch": "v2.5", "commit": "6f25b2739684389ca69ea8229386c098c566c408" },
+  "base46": { "branch": "v2.5", "commit": "fde7a2cd54599e148d376f82980407c2d24b0fa2" },
+  "cmp-buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
+  "cmp-nvim-lsp": { "branch": "main", "commit": "99290b3ec1322070bcfb9e846450a46f6efa50f0" },
+  "cmp-nvim-lua": { "branch": "main", "commit": "f12408bdb54c39c23e67cab726264c10db33ada8" },
+  "cmp-path": { "branch": "main", "commit": "91ff86cd9c29299a64f968ebb45846c485725f23" },
+  "cmp_luasnip": { "branch": "master", "commit": "98d9cb5c2c38532bd9bdb481067b20fea8f32e90" },
+  "conform.nvim": { "branch": "master", "commit": "8ed162b0637d4c4f69ebe3e8e49b35662a82e137" },
+  "friendly-snippets": { "branch": "main", "commit": "efff286dd74c22f731cdec26a70b46e5b203c619" },
+  "gitsigns.nvim": { "branch": "main", "commit": "8b00147519d6f8353867d5d0b55f587306b0cfb6" },
+  "indent-blankline.nvim": { "branch": "master", "commit": "e10626f7fcd51ccd56d7ffc00883ba7e0aa28f78" },
+  "lazy.nvim": { "branch": "main", "commit": "ac21a639c7ecfc8b822dcc9455deceea3778f839" },
+  "mason.nvim": { "branch": "main", "commit": "f9f3b464dda319288b8ce592e53f0d9cf9ca8b4e" },
+  "menu": { "branch": "main", "commit": "7769b17c2a131108c02b10e9f844e504aa605cc2" },
+  "minty": { "branch": "main", "commit": "6dce9f097667862537823d515a0250ce58faab05" },
+  "nvim-autopairs": { "branch": "master", "commit": "68f0e5c3dab23261a945272032ee6700af86227a" },
+  "nvim-cmp": { "branch": "main", "commit": "12509903a5723a876abd65953109f926f4634c30" },
+  "nvim-lint": { "branch": "master", "commit": "6e9dd545a1af204c4022a8fcd99727ea41ffdcc8" },
+  "nvim-lspconfig": { "branch": "master", "commit": "7af2c37192deae28d1305ae9e68544f7fb5408e1" },
+  "nvim-tree.lua": { "branch": "master", "commit": "80523101f0ae48b7f1990e907b685a3d79776c01" },
+  "nvim-treesitter": { "branch": "master", "commit": "00a513f87ee3c339c2024b08db3eb63ba7736ed6" },
+  "nvim-web-devicons": { "branch": "master", "commit": "1020869742ecb191f260818234517f4a1515cfe8" },
+  "plenary.nvim": { "branch": "master", "commit": "857c5ac632080dba10aae49dba902ce3abf91b35" },
+  "telescope.nvim": { "branch": "master", "commit": "78857db9e8d819d3cc1a9a7bdc1d39d127a36495" },
+  "ts-comments.nvim": { "branch": "main", "commit": "872dcfa0418f4a33b7437fb4d9f4e89f2f000d74" },
+  "ui": { "branch": "v3.0", "commit": "f5576f0499d0a7bf053991cba4564d73a55af875" },
+  "volt": { "branch": "main", "commit": "3bedb1576db574af160643eea7df3b09dbe5ee9c" },
+  "which-key.nvim": { "branch": "main", "commit": "5bf7a73fe851896d5ac26d313db849bf00f45b78" }
+}
+
+```
+
+`/dotfiles/home/nvim/lua/chadrc.lua`:
+
+```lua
+-- This file needs to have same structure as nvconfig.lua
+-- https://github.com/NvChad/ui/blob/v2.5/lua/nvconfig.lua
+
+---@type ChadrcConfig
+local M = {}
+
+M.base46 = {
+  theme = "nord",
+
+  hl_override = {
+    Comment = { italic = true },
+    ["@comment"] = { italic = true },
+  },
+}
+
+M.nvdash = {
+  load_on_startup = true,
+  header = {
+    "   ⣴⣶⣤⡤⠦⣤⣀⣤⠆     ⣈⣭⣿⣶⣿⣦⣼⣆          ",
+    "    ⠉⠻⢿⣿⠿⣿⣿⣶⣦⠤⠄⡠⢾⣿⣿⡿⠋⠉⠉⠻⣿⣿⡛⣦       ",
+    "          ⠈⢿⣿⣟⠦ ⣾⣿⣿⣷    ⠻⠿⢿⣿⣧⣄     ",
+    "           ⣸⣿⣿⢧ ⢻⠻⣿⣿⣷⣄⣀⠄⠢⣀⡀⠈⠙⠿⠄    ",
+    "          ⢠⣿⣿⣿⠈    ⣻⣿⣿⣿⣿⣿⣿⣿⣛⣳⣤⣀⣀   ",
+    "   ⢠⣧⣶⣥⡤⢄ ⣸⣿⣿⠘  ⢀⣴⣿⣿⡿⠛⣿⣿⣧⠈⢿⠿⠟⠛⠻⠿⠄  ",
+    "  ⣰⣿⣿⠛⠻⣿⣿⡦⢹⣿⣷   ⢊⣿⣿⡏  ⢸⣿⣿⡇ ⢀⣠⣄⣾⠄   ",
+    " ⣠⣿⠿⠛ ⢀⣿⣿⣷⠘⢿⣿⣦⡀ ⢸⢿⣿⣿⣄ ⣸⣿⣿⡇⣪⣿⡿⠿⣿⣷⡄  ",
+    " ⠙⠃   ⣼⣿⡟  ⠈⠻⣿⣿⣦⣌⡇⠻⣿⣿⣷⣿⣿⣿ ⣿⣿⡇ ⠛⠻⢷⣄ ",
+    "      ⢻⣿⣿⣄   ⠈⠻⣿⣿⣿⣷⣿⣿⣿⣿⣿⡟ ⠫⢿⣿⡆     ",
+    "       ⠻⣿⣿⣿⣿⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⡟⢀⣀⣤⣾⡿⠃     ",
+    "                                   ",
+    "                                   ",
+  },
+}
+
+M.ui = {
+  theme = "nord",
+
+  statusline = {
+    theme = "default",
+    separator_style = "round",
+  },
+
+  tabufline = {
+    enabled = false,
+  },
+
+  -- term = {
+  -- enabled = false,
+  -- },
+}
+
+return M
+
+```
+
+`/dotfiles/home/nvim/lua/configs/comment.lua`:
+
+```lua
+return {
+  -- ignore = "^$", -- ignore empty lines
+  -- pre_hook = require("ts_context_commentstring.integrations.comment_nvim").create_pre_hook,
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/commentstring.lua`:
+
+```lua
+return {
+  enable_autocmd = false,
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/conform.lua`:
+
+```lua
+local options = {
+  formatters_by_ft = {
+    lua = { "stylua" },
+
+    vue = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    javascript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    javascriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["javascript.jsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    typescript = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    typescriptreact = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+    ["typescript.tsx"] = {
+      "eslint_d", -- Necessary for Planhat setup
+      "prettierd",
+      "prettier",
+      stop_after_first = true,
+    },
+
+    css = { "prettierd", "prettier", stop_after_first = true },
+    html = { "prettierd", "prettier", stop_after_first = true },
+    json = { "prettierd", "prettier", stop_after_first = true },
+    graphql = { "prettierd", "prettier", stop_after_first = true },
+  },
+
+  format_on_save = {
+    -- These options will be passed to conform.format()
+    timeout_ms = 10000,
+    lsp_fallback = true,
+  },
+}
+
+return options
+
+```
+
+`/dotfiles/home/nvim/lua/configs/gitsigns.lua`:
+
+```lua
+local options = {
+  current_line_blame = true, -- Toggle with `:Gitsigns toggle_current_line_blame`
+  current_line_blame_opts = {
+    virt_text = true,
+    virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
+    delay = 0,
+    ignore_whitespace = false,
+    virt_text_priority = 100,
+  },
+  current_line_blame_formatter = " <author>, <author_time:%R> - <summary>",
+}
+
+return options
+
+
+```
+
+`/dotfiles/home/nvim/lua/configs/lazy.lua`:
+
+```lua
+return {
+  defaults = { lazy = true },
+  install = { colorscheme = { "nvchad" } },
+
+  ui = {
+    icons = {
+      ft = "",
+      lazy = "󰂠 ",
+      loaded = "",
+      not_loaded = "",
+    },
+  },
+
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "2html_plugin",
+        "tohtml",
+        "getscript",
+        "getscriptPlugin",
+        "gzip",
+        "logipat",
+        "netrw",
+        "netrwPlugin",
+        "netrwSettings",
+        "netrwFileHandlers",
+        "matchit",
+        "tar",
+        "tarPlugin",
+        "rrhelper",
+        "spellfile_plugin",
+        "vimball",
+        "vimballPlugin",
+        "zip",
+        "zipPlugin",
+        "tutor",
+        "rplugin",
+        "syntax",
+        "synmenu",
+        "optwin",
+        "compiler",
+        "bugreport",
+        "ftplugin",
+      },
+    },
+  },
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/lspconfig.lua`:
+
+```lua
+-- load defaults i.e lua_lsp
+require("nvchad.configs.lspconfig").defaults()
+
+local lspconfig = require "lspconfig"
+
+local servers = { "eslint", "html", "cssls", "lua_ls", "tailwindcss", "volar" }
+local nvlsp = require "nvchad.configs.lspconfig"
+
+-- lsps with default config
+for _, lsp in ipairs(servers) do
+  lspconfig[lsp].setup {
+    on_attach = nvlsp.on_attach,
+    on_init = nvlsp.on_init,
+    capabilities = nvlsp.capabilities,
+  }
+end
+
+local mason_registry = require "mason-registry"
+local typescript_plugin_path = mason_registry.get_package("vue-language-server"):get_install_path()
+  .. "/node_modules/@vue/language-server/node_modules/@vue/typescript-plugin"
+
+-- configuring single server, example: typescript
+lspconfig.ts_ls.setup {
+  on_attach = nvlsp.on_attach,
+  capabilities = nvlsp.capabilities,
+  init_options = {
+    preferences = {
+      disableSuggestions = true,
+    },
+    plugins = {
+      {
+        name = "@vue/typescript-plugin",
+        location = typescript_plugin_path,
+        languages = { "vue" },
+      },
+    },
+  },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "javascript.jsx",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+    "vue",
+  },
+}
+
+```
+
+`/dotfiles/home/nvim/lua/configs/mason.lua`:
+
+```lua
+local opts = {
+  ensure_installed = {
+    -- lua stuff
+    "lua-language-server",
+    "stylua",
+
+    -- web dev stuff
+    "css-lsp",
+    "html-lsp",
+    "typescript-language-server",
+    "tailwindcss-language-server",
+    "prettier",
+    "prettierd",
+    "eslint-lsp",
+    "eslint_d",
+  },
+}
+
+return opts
+
+```
+
+`/dotfiles/home/nvim/lua/configs/nvim-lint.lua`:
+
+```lua
+local opts = {
+  events = { "BufWritePost", "BufReadPost", "InsertLeave" },
+  linters_by_ft = {
+    javascript = {
+      "eslint_d",
+      -- "eslint",
+    },
+    javascriptreact = {
+      "eslint_d",
+      -- "eslint",
+    },
+    ["javascript.jsx"] = {
+      "eslint_d",
+      -- "eslint",
+    },
+
+    typescript = {
+      "eslint_d",
+      -- "eslint",
+    },
+    typescriptreact = {
+      "eslint_d",
+      -- "eslint",
+    },
+    ["typescript.tsx"] = {
+      "eslint_d",
+      -- "eslint",
+    },
+
+    vue = {
+      "eslint_d",
+      -- "eslint",
+    },
+  },
+}
+
+return opts
+
+-- local lint = require "lint"
+-- local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+--
+-- vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+--   group = lint_augroup,
+--   callback = function()
+--     lint.try_lint()
+--   end,
+-- })
+
+```
+
+`/dotfiles/home/nvim/lua/configs/nvim-tree.lua`:
+
+```lua
+local opts = {
+  view = {
+    adaptive_size = true,
+  },
+  renderer = {
+    icons = {
+      glyphs = {
+        folder = {
+          open = "",
+        },
+      },
+    },
+  },
+}
+
+return opts
+
+
+```
+
+`/dotfiles/home/nvim/lua/configs/treesitter.lua`:
+
+```lua
+local opts = {
+  ensure_installed = {
+    "vim",
+    "lua",
+    "html",
+    "css",
+    "vue",
+    "svelte",
+    "javascript",
+    "typescript",
+    "tsx",
+    "json",
+    "markdown",
+    "markdown_inline",
+    "vimdoc",
+  },
+}
+
+return opts
+
+
+```
+
+`/dotfiles/home/nvim/lua/mappings.lua`:
+
+```lua
+require "nvchad.mappings"
+
+local map = vim.keymap.set
+
+map("n", ";", ":", { desc = "CMD enter command mode" })
+
+map("n", "<leader>x", ":close<CR>", { desc = "Close window" })
+
+map("n", "<leader>v", ":vsplit<CR>", { desc = "Split window vertically" })
+map("n", "<leader>h", ":split<CR>", { desc = "Split window horizontally" })
+
+map("n", "<C-d>", "<C-d>zz", { desc = "Move down half-page" })
+map("n", "<C-u>", "<C-u>zz", { desc = "Move up half-page" })
+
+map("i", "jk", "<ESC>")
+map("i", "<C-s>", "<Esc>:w<CR>", { desc = "Save file in insert mode" })
+
+map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move line down" })
+map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move line up" })
+
+-- Disable default terminal mapping
+map("n", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+map("t", "<D-M-i>", "<nop>", { desc = "Disable default terminal" })
+
+```
+
+`/dotfiles/home/nvim/lua/options.lua`:
+
+```lua
+require "nvchad.options"
+
+-- 'Hybrid' line numbers (relative + current line)
+vim.wo.number = true
+vim.wo.relativenumber = true
+
+vim.opt.scrolloff = 8 -- Set padding when scrolling
+
+```
+
+`/dotfiles/home/nvim/lua/plugins/init.lua`:
+
+```lua
+return {
+  {
+    "stevearc/conform.nvim",
+    event = "BufWritePre",
+    opts = require "configs.conform",
+  },
+
+  {
+    "folke/ts-comments.nvim",
+    event = "VeryLazy",
+    opts = {},
+  },
+
+  {
+    "mfussenegger/nvim-lint",
+    opts = require "configs.nvim-lint",
+  },
+
+  {
+    "nvim-tree/nvim-tree.lua",
+    cmd = { "NvimTreeToggle", "NvimTreeFocus" },
+    opts = require "configs.nvim-tree",
+  },
+
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      require "configs.lspconfig"
+    end,
+  },
+
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = require "configs.treesitter",
+  },
+
+  {
+    "williamboman/mason.nvim",
+    opts = require "configs.mason",
+  },
+
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = require "configs.gitsigns",
+  },
+}
+
+```
+
+`/dotfiles/home/starship.toml`:
+
+```toml
+format = """
+[](#4C566A)\
+$time\
+[](bg:#434C5E fg:#4C566A)\
+$directory\
+[](fg:#434C5E bg:#3B4252)\
+$git_branch\
+$git_status\
+[](fg:#3B4252 bg:#2E3440)\
+"""
+right_format = """$nodejs"""
+command_timeout = 1000
+
+[directory]
+style = "bg:#434C5E"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+symbol = ""
+style = "bg:#3B4252"
+format = '[ $symbol $branch ]($style)'
+
+[git_status]
+style = "bg:#3B4252"
+format = '[$all_status$ahead_behind ]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:#2E3440 #4C566A"
+format = '[ $symbol ($version) ]($style)'
+
+[time]
+disabled = false
+time_format = "%R" # Hour:Minute Format
+style = "bg:#4C566A"
+format = '[ $time ]($style)'
+
+```
+
+`/dotfiles/home/wezterm/wezterm.lua`:
+
+```lua
+local wezterm = require("wezterm")
+local act = wezterm.action
+
+-- Set default padding
+local default_padding = {
+	left = 8,
+	right = 8,
+	top = 8,
+	bottom = 8,
+}
+
+-- Set padding for Neovim (i.e., no padding)
+local nvim_padding = {
+	left = 0,
+	right = 0,
+	top = 0,
+	bottom = 0,
+}
+
+wezterm.on("update-right-status", function(window, pane)
+	-- Get the current process name
+	local process_name = pane:get_foreground_process_name()
+
+	-- Check if Neovim is running in the active pane
+	if process_name and process_name:find("nvim") then
+		-- Remove padding when Neovim is detected
+		window:set_config_overrides({
+			window_padding = nvim_padding,
+		})
+	else
+		-- Restore default padding when not in Neovim
+		window:set_config_overrides({
+			window_padding = default_padding,
+		})
+	end
+end)
+
+return {
+	color_scheme = "nord",
+	font = wezterm.font("VictorMono Nerd Font", { weight = "Regular", italic = false }),
+
+	adjust_window_size_when_changing_font_size = false,
+
+	font_size = 14.0,
+
+	hide_tab_bar_if_only_one_tab = true,
+
+	native_macos_fullscreen_mode = true,
+
+	window_padding = {
+		left = 0,
+		right = 0,
+		top = 0,
+		bottom = 0,
+	},
+
+	inactive_pane_hsb = {
+		-- NOTE: these values are multipliers, applied on normal pane values
+		saturation = 0.5,
+		brightness = 0.8,
+	},
+
+	keys = {
+		{
+			key = "f",
+			mods = "CMD|CTRL",
+			action = act.ToggleFullScreen,
+		},
+		{
+			key = "[",
+			mods = "CMD",
+			action = act.ActivatePaneDirection("Left"),
+		},
+		{
+			key = "]",
+			mods = "CMD",
+			action = act.ActivatePaneDirection("Right"),
+		},
+		{
+			key = "d",
+			mods = "CMD",
+			action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }),
+		},
+		{
+			key = "d",
+			mods = "CMD|SHIFT",
+			action = act.SplitVertical({ domain = "CurrentPaneDomain" }),
+		},
+		{
+			key = "w",
+			mods = "CMD",
+			action = act.CloseCurrentPane({ confirm = false }),
+		},
+
+		-- Conform to Mac shortcuts for text navigation ([forward | backward] [word | line])
+		-- There are better ways to do this, see copyMode in Wezterm docs
+		{
+			key = "LeftArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bb" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "OPT",
+			action = wezterm.action({ SendString = "\x1bf" }),
+		},
+
+		{
+			key = "LeftArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOH" }),
+		},
+		{
+			key = "RightArrow",
+			mods = "CMD",
+			action = wezterm.action({ SendString = "\x1bOF" }),
+		},
+	},
+}
+
+```
+
+`/dotfiles/scripts/README.md`:
+
+```md
+# Setup Scripts
+
+This directory contains modular scripts for setting up a development environment with chezmoi across different platforms.
+
+## Scripts Overview
+
+- `setup.sh` - Main script that orchestrates the setup process
+- `detect_environment.sh` - Detects the current environment (macOS, Linux, Docker)
+- `install_dependencies.sh` - Installs core dependencies based on the environment
+- `install_chezmoi.sh` - Installs chezmoi
+- `setup_ssh.sh` - Sets up SSH keys for GitHub authentication
+- `init_dotfiles.sh` - Initializes dotfiles with chezmoi
+- `setup_environment.sh` - Sets up environment-specific configurations
+
+## One-Line Installation
+
+Use the following command to set up your development environment:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ViktorJT/dotfiles/main/setup.sh | bash
+```
+
+## Modular Structure Benefits
+
+1. **Easier to maintain** - Each script has a single responsibility
+2. **Better readability** - Shorter scripts are easier to understand
+3. **Reusable components** - Scripts can be used independently
+4. **Easier troubleshooting** - Problems can be isolated to specific scripts
+
+## Directory Structure
+
+These scripts should be placed in your dotfiles repository as follows:
+
+```
+dotfiles/
+├── setup.sh              # Main entry point script
+├── scripts/              # Directory for modular scripts
+│   ├── detect_environment.sh
+│   ├── install_dependencies.sh
+│   ├── install_chezmoi.sh
+│   ├── setup_ssh.sh
+│   ├── init_dotfiles.sh
+│   └── setup_environment.sh
+├── home/                 # Dotfiles managed by chezmoi
+│   └── ...
+└── docker/               # Docker-related files
+    ├── Dockerfile
+    └── docker-compose.yml
+```
+
+## Development
+
+To modify or add new functionality:
+
+1. Edit the specific script that handles that functionality
+2. If adding a new script, update `setup.sh` to include it
+3. Test changes in different environments
+4. Commit and push changes to your repository
+
+```
+
+`/dotfiles/scripts/detect_environment.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to detect the current environment
+
+detect_environment() {
+  echo "🔍 Detecting environment..."
+  
+  # Define variables to hold environment information
+  export ENV_NAME=""
+  export ENV_TYPE=""
+  export PKG_MANAGER=""
+  export USE_SUDO=true
+  
+  # Check if we're in a Docker container
+  if [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; then
+    ENV_NAME="Docker"
+    ENV_TYPE="linux"
+    USE_SUDO=false
+    echo "🐳 Docker environment detected"
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    ENV_NAME="macOS"
+    ENV_TYPE="darwin"
+    PKG_MANAGER="brew"
+    echo "🍎 macOS environment detected"
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ENV_NAME="Linux"
+    ENV_TYPE="linux"
+    
+    # Detect Linux distribution
+    if [ -f /etc/debian_version ]; then
+      echo "🐧 Debian/Ubuntu Linux detected"
+      PKG_MANAGER="apt"
+    elif [ -f /etc/fedora-release ]; then
+      echo "🐧 Fedora Linux detected"
+      PKG_MANAGER="dnf"
+    elif [ -f /etc/arch-release ]; then
+      echo "🐧 Arch Linux detected"
+      PKG_MANAGER="pacman"
+    else
+      echo "🐧 Generic Linux detected, will try to determine package manager"
+      if command -v apt &>/dev/null; then
+        PKG_MANAGER="apt"
+      elif command -v dnf &>/dev/null; then
+        PKG_MANAGER="dnf"
+      elif command -v pacman &>/dev/null; then
+        PKG_MANAGER="pacman"
+      else
+        echo "❌ Could not determine package manager. Please install dependencies manually."
+        PKG_MANAGER="unknown"
+      fi
+    fi
+  else
+    echo "⚠️ Unknown environment: $OSTYPE"
+    ENV_NAME="Unknown"
+    ENV_TYPE="unknown"
+  fi
+  
+  echo "✅ Environment detected as: $ENV_NAME using ${PKG_MANAGER:-'no package manager'}"
+}
+
+```
+
+`/dotfiles/scripts/init_dotfiles.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to initialize dotfiles with chezmoi
+
+# Default dotfiles repository
+DEFAULT_REPO="git@github.com:ViktorJT/dotfiles.git"
+HTTPS_REPO="https://github.com/ViktorJT/dotfiles.git"
+
+init_dotfiles() {
+  if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+    echo "⚙ Initializing dotfiles..."
+    
+    # Use the default repo
+    dotfiles_repo=$DEFAULT_REPO
+    
+    # Use HTTPS if requested
+    if [[ "$USE_HTTPS" == true ]]; then
+      echo "Using HTTPS authentication for GitHub"
+      dotfiles_repo=$HTTPS_REPO
+      chezmoi init "$dotfiles_repo"
+    else
+      chezmoi init "$dotfiles_repo" --ssh
+    fi
+    
+    echo "🎨 Applying dotfiles..."
+    chezmoi apply
+  else
+    echo "✅ Chezmoi already initialized!"
+    
+    # Check if we should update dotfiles
+    if [[ "$UPDATE_DOTFILES" == true ]]; then
+      echo "🔄 Updating dotfiles..."
+      chezmoi update
+    else
+      echo "⏭️ Skipping dotfiles update as requested."
+    fi
+  fi
+}
+```
+
+`/dotfiles/scripts/install_chezmoi.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to install chezmoi
+
+install_chezmoi() {
+  if command -v chezmoi &>/dev/null; then
+    echo "✅ Chezmoi already installed"
+  else
+    echo "📦 Installing Chezmoi..."
+    
+    case $ENV_TYPE in
+      darwin)
+        if command -v brew &>/dev/null; then
+          brew install chezmoi
+        else
+          echo "🍺 Installing Homebrew first..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          brew install chezmoi
+        fi
+        ;;
+      *)
+        # Universal install method
+        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $([[ $USE_SUDO == true ]] && echo "/usr/local/bin" || echo "$HOME/.local/bin")
+        
+        # Add to PATH if installed to ~/.local/bin
+        if [[ $USE_SUDO == false ]]; then
+          export PATH="$HOME/.local/bin:$PATH"
+        fi
+        ;;
+    esac
+  fi
+  
+  # Verify installation
+  if command -v chezmoi &>/dev/null; then
+    echo "✅ Chezmoi installed successfully"
+    chezmoi --version
+  else
+    echo "❌ Failed to install Chezmoi"
+    exit 1
+  fi
+}
+
+```
+
+`/dotfiles/scripts/install_dependencies.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to install core dependencies
+
+install_dependencies() {
+  echo "📦 Installing core dependencies..."
+  
+  # First, check for chezmoi - if already installed, skip this step
+  if command -v chezmoi &>/dev/null; then
+    echo "✅ Chezmoi already installed, skipping dependencies installation"
+    return 0
+  fi
+  
+  # Install git if not available
+  if ! command -v git &>/dev/null; then
+    echo "Installing git..."
+    case $PKG_MANAGER in
+      brew)
+        brew install git
+        ;;
+      apt)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt update
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt install -y git
+        ;;
+      dnf)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") dnf install -y git
+        ;;
+      pacman)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") pacman -Sy --noconfirm git
+        ;;
+      *)
+        echo "⚠️ Unknown package manager. Please install git manually."
+        ;;
+    esac
+  fi
+  
+  # Install curl if not available
+  if ! command -v curl &>/dev/null; then
+    echo "Installing curl..."
+    case $PKG_MANAGER in
+      brew)
+        brew install curl
+        ;;
+      apt)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt update
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt install -y curl
+        ;;
+      dnf)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") dnf install -y curl
+        ;;
+      pacman)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") pacman -Sy --noconfirm curl
+        ;;
+      *)
+        echo "⚠️ Unknown package manager. Please install curl manually."
+        ;;
+    esac
+  fi
+  
+  # Install zsh if not available
+  if ! command -v zsh &>/dev/null; then
+    echo "Installing zsh..."
+    case $PKG_MANAGER in
+      brew)
+        brew install zsh
+        ;;
+      apt)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt update
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") apt install -y zsh
+        ;;
+      dnf)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") dnf install -y zsh
+        ;;
+      pacman)
+        $([[ $USE_SUDO == true ]] && echo "sudo" || echo "") pacman -Sy --noconfirm zsh
+        ;;
+      *)
+        echo "⚠️ Unknown package manager. Please install zsh manually."
+        ;;
+    esac
+  fi
+  
+  echo "✅ Core dependencies installed"
+}
+
+```
+
+`/dotfiles/scripts/setup_environment.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to set up environment-specific configurations
+
+setup_environment_specific() {
+  echo "🛠️ Setting up environment-specific configurations..."
+  
+  # Default user info
+  USER_NAME="Viktor"
+  USER_EMAIL="v.jensentorp@gmail.com"
+  
+  # Create chezmoi configuration with environment information
+  echo "📝 Creating chezmoi configuration..."
+  
+  # Determine the current environment 
+  isDocker="false"
+  isMacOS="false"
+  isLinux="false"
+  dockerType=""
+  
+  # Use the detected environment from detect_environment.sh
+  if [[ "$ENV_NAME" == "Docker" ]]; then
+    isDocker="true"
+    
+    # Try to detect Docker container type based on hostname
+    if [[ "$(hostname)" == *"web"* ]]; then
+      dockerType="web"
+    elif [[ "$(hostname)" == *"data"* ]]; then
+      dockerType="data-science"
+    elif [[ "$(hostname)" == *"dev"* ]]; then
+      dockerType="ipad-host"
+    else
+      dockerType="dev"
+    fi
+    
+  elif [[ "$ENV_NAME" == "macOS" ]]; then
+    isMacOS="true"
+  elif [[ "$ENV_NAME" == "Linux" ]]; then
+    isLinux="true"
+  fi
+  
+  # Create chezmoi configuration file
+  mkdir -p "$HOME/.config/chezmoi"
+  cat > "$HOME/.config/chezmoi/chezmoi.toml" << EOF
+# chezmoi configuration file
+
+[data]
+    docker = ${isDocker}
+    dockerType = "${dockerType}"
+    macos = ${isMacOS}
+    linux = ${isLinux}
+    hostname = "$(hostname)"
+    username = "$(whoami)"
+    email = "${USER_EMAIL}"
+    name = "${USER_NAME}"
+EOF
+  
+  # Update git config if not already set
+  if ! git config --global user.name >/dev/null 2>&1; then
+    git config --global user.name "$USER_NAME"
+    git config --global user.email "$USER_EMAIL"
+    echo "✅ Git configuration updated!"
+  else
+    echo "✅ Git configuration already set!"
+  fi
+  
+  echo "✅ Environment configuration set up!"
+}
+```
+
+`/dotfiles/scripts/setup_ssh.sh`:
+
+```sh
+#!/bin/bash
+
+# Script to generate an SSH key and configure Git to use SSH
+
+setup_ssh_key() {
+  HOME_DIR=$HOME
+  SSH_DIR="$HOME_DIR/.ssh"
+
+  # Create .ssh directory if it doesn't exist
+  mkdir -p "$SSH_DIR"
+  chmod 700 "$SSH_DIR"
+
+  # Check if an SSH key already exists
+  if [[ -f "$SSH_DIR/id_ed25519" ]]; then
+  	echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"	
+    echo -e "   ✅  SSH key already exists. Skipping key generation."
+  	echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+    return
+  fi
+
+  # Use provided key name or fallback to `HOSTNAME + timestamp`
+  SSH_KEY_LABEL="${1:-${HOSTNAME}-$(date +%Y%m%d-%H%M%S)}"
+  SSH_KEY_PATH="$SSH_DIR/id_ed25519"
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "      🔑  No SSH key found. Generating a new one..."
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+
+  ssh-keygen -t ed25519 -C "$SSH_KEY_LABEL" -f "$SSH_KEY_PATH" -N ""
+
+  # Fix permissions
+  chmod 600 "$SSH_KEY_PATH"
+
+  # Display SSH key
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "🔓  Your public SSH key (copy this and add it to GitHub):"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  cat "$SSH_KEY_PATH.pub"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "                   📌  Next Steps:"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  echo -e "  1️⃣  Copy the SSH key above and add it to GitHub:"
+  echo -e "      🔗  https://github.com/settings/keys"
+  echo -e ""
+  echo -e "  2️⃣  Test your SSH connection to GitHub:"
+  echo -e "      🛠️   ssh -T git@github.com"
+  echo -e ""
+  echo -e "  3️⃣  If authentication fails, manually add your key:"
+  echo -e "      🔧   ssh-add ~/.ssh/id_ed25519"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+	echo -e ""
+
+  echo -e "       📋  Some useful commands:"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "  • 📝  chezmoi edit ~/.zshrc  - Edit your zsh config"
+  echo -e "  • ⚡  chezmoi apply          - Apply changes"
+  echo -e "  • 🔄  chezmoi update         - Pull latest changes from repo"
+  echo -e "  • 📂  chezmoi cd             - Go to your dotfiles directory"
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+  echo -e ""
+  echo -e ""
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "       🎉  Your development environment is ready!"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+}
+```
+
+`/dotfiles/scripts/utils/logging.sh`:
+
+```sh
+#!/bin/bash
+
+# Fancy logging functions for consistent output formatting
+# Can be sourced by any script
+
+log_header() {
+  echo ""
+  echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+  echo "┃                                                                              ┃"
+  printf "┃ %-76s ┃\n" "🚀 $1"
+  echo "┃                                                                              ┃"
+  echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+  echo ""
+}
+
+log_section() {
+  echo ""
+  echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+  printf "┃ %-76s ┃\n" "📌 $1"
+  echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+  echo ""
+}
+
+log_step() {
+  printf "   %-74s \n" "🔹 $1"
+}
+
+log_success() {
+  printf "   %-74s \n" "✅ $1"
+}
+
+log_warning() {
+  printf "   %-74s \n" "⚠️  $1"
+}
+
+log_error() {
+  printf "   %-74s \n" "❌ $1"
+}
+
+log_info() {
+  printf "   %-74s \n" "ℹ️  $1"
+}
+
+log_command_output() {
+  echo "   ┌────────────────────────────────────────────────────────────────────────────┐"
+  while IFS= read -r line; do
+    printf "   │ %-74s │\n" "$line"
+  done
+  echo "   └────────────────────────────────────────────────────────────────────────────┘"
+}
+
+log_code_block() {
+  echo "   ┌────────────────────────────────────────────────────────────────────────────┐"
+  echo "$1" | while IFS= read -r line; do
+    printf "   │ %-74s │\n" "$line"
+  done
+  echo "   └────────────────────────────────────────────────────────────────────────────┘"
+}
+
+log_success_block() {
+  echo ""
+  echo "   ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+  echo "   ┃                                                                           ┃"
+  echo "   ┃  🎉 $1                                                              ┃"
+  echo "   ┃                                                                           ┃"
+  echo "   ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+  echo ""
+}
+```
+
+`/dotfiles/setup.sh`:
+
+```sh
+#!/bin/bash
+set -e  # Exit on error
+
+# Get execution directory (where script was run)
+EXECUTION_DIR="$(pwd)"
+
+# Default environment
+ENVIRONMENT="macos"
+
+for arg in "$@"; do
+  [[ "$arg" == --env=* ]] && ENVIRONMENT="${arg#*=}"
+done
+
+if ! command -v chezmoi &> /dev/null; then
+  sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
+fi
+
+export PATH="$HOME/.local/bin:$PATH"
+
+echo "testing"
+
+chezmoi init ViktorJT
+CHEZMOI_ENVIRONMENT="$ENVIRONMENT" chezmoi apply
+
+```
+```
+```
