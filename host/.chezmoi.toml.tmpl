@@ -1,0 +1,28 @@
+[data]
+    # User information
+    name = "Viktor"
+    email = "v.jensentorp@gmail.com"
+    
+    # Environment detection for host
+    hostEnvironment = {{ if eq .chezmoi.os "darwin" }}
+        "macos"
+    {{ else if eq .chezmoi.os "linux" }}
+        {{ if (and (hasKey .chezmoi.osRelease "id") (eq .chezmoi.osRelease.id "debian")) }}
+            "linux-debian"
+        {{ else if (and (hasKey .chezmoi.osRelease "id") (eq .chezmoi.osRelease.id "arch")) }}
+            "linux-arch"
+        {{ else }}
+            "linux-generic"
+        {{ end }}
+    {{ else }}
+        "unknown"
+    {{ end }}
+    
+    # Feature flags (can be overridden with environment variables)
+    enableDevTools = {{ env "ENABLE_DEV_TOOLS" | default "true" | toBool }}
+    enableDocker = {{ env "ENABLE_DOCKER" | default "true" | toBool }}
+    enableNeovim = {{ env "ENABLE_NEOVIM" | default "true" | toBool }}
+    enableWezterm = {{ env "ENABLE_WEZTERM" | default "true" | toBool }}
+
+    # Hostname for machine-specific configurations
+    hostname = {{ .chezmoi.hostname | quote }}
