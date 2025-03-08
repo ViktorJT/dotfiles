@@ -1,6 +1,6 @@
 # Dotfiles
 
-A modern, modular dotfiles repository managed with chezmoi.
+Modern, modular dotfiles repository managed with chezmoi.
 
 ## Structure
 
