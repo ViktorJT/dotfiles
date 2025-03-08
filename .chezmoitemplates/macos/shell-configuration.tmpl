@@ -27,9 +27,5 @@ source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions
 # Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
 source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
-# Google Cloud SDK setup (macOS specific)
-source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
-source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
-
 # Display welcome message
 echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"

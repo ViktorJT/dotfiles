@@ -1,0 +1,13 @@
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}

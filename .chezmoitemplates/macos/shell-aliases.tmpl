@@ -14,34 +14,9 @@ alias brewcheck="brew doctor"
 alias bi="brew install"
 alias bci="brew install --cask"
 
-# Development tools
-if command -v code &> /dev/null; then
-  alias c="code ."
-fi
-
 # Enhanced ls commands using exa if available
 if command -v exa &> /dev/null; then
   alias ls="exa --icons"
   alias ll="exa --icons -la"
   alias lt="exa --icons -T -L 2"
 fi
-
-# Quick edit common config files
-alias zshconfig="chezmoi edit ~/.zshrc"
-alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
-
-# Git shortcuts
-alias gs="git status"
-alias gl="git log --oneline -10"
-alias gd="git diff"
-alias gc="git commit -m"
-alias ga="git add"
-alias gp="git push"
-
-# Open applications
-alias chrome="open -a 'Google Chrome'"
-alias safari="open -a Safari"
-alias preview="open -a Preview"
-
-# Python alias
-alias pip="python3 -m pip"
