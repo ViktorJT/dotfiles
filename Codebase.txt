@@ -82,7 +82,49 @@ dotfiles
 │   │   └── home
 │   └── data-science
 │       └── home
-└── README.md
+├── README.md
+└── chezmoitemplates
+    ├── defaults
+    │   ├── zsh
+    │   │   ├── aliases.tmpl
+    │   │   ├── plugins.tmpl
+    │   │   └── configuration.tmpl
+    │   ├── packages.tmpl
+    │   ├── shell
+    │   │   ├── aliases.tmpl
+    │   │   ├── plugins.tmpl
+    │   │   └── configuration.tmpl
+    │   ├── editors
+    │   └── tools
+    ├── shared
+    │   ├── linux
+    │   │   ├── zsh
+    │   │   └── shell-configuration.tmpl
+    │   └── docker
+    │       └── zsh
+    ├── environments
+    │   └── macos
+    │       ├── zsh
+    │       │   ├── aliases.tmpl
+    │       │   ├── plugins.tmpl
+    │       │   ├── functions.tmpl
+    │       │   └── configuration.tmpl
+    │       ├── defaults.sh.tmpl
+    │       ├── packages.tmpl
+    │       ├── raycast-config.tmpl
+    │       └── keyboard-shortcuts.xml.tmpl
+    ├── macos
+    │   ├── shell-aliases.tmpl
+    │   ├── shell-configuration.tmpl
+    │   ├── shell-functions.tmpl
+    │   ├── shell-plugins.tmpl
+    │   ├── raycast-config.tmpl
+    │   └── keyboard-shortcuts.xml.tmpl
+    └── linux
+        ├── debian
+        │   ├── shell-plugins.tmpl
+        │   └── shell-aliases.tmpl
+        └── arch
 
 ```
 
@@ -2554,5 +2596,1241 @@ curl -fsSL https://raw.githubusercontent.com/ViktorJT/dotfiles/main/scripts/setu
 - Modular structure with defaults, shared, and environment-specific configurations
 - Automatic environment detection and configuration
 - Support for multiple Docker environments
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/zsh/aliases.tmpl`:
+
+```tmpl
+# Default aliases for all environments
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Quick edit with chezmoi
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias dotfiles="chezmoi edit"
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/zsh/plugins.tmpl`:
+
+```tmpl
+git
+sudo
+fzf
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/zsh/configuration.tmpl`:
+
+```tmpl
+# Default zsh configuration for all environments
+
+# History configuration
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/packages.tmpl`:
+
+```tmpl
+# Default packages for all environments
+git
+curl
+wget
+zsh
+neovim
+tmux
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/shell/aliases.tmpl`:
+
+```tmpl
+# Default aliases for all environments
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Quick edit with chezmoi
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias dotfiles="chezmoi edit"
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/shell/plugins.tmpl`:
+
+```tmpl
+git
+sudo
+fzf
+
+```
+
+`/dotfiles/chezmoitemplates/defaults/shell/configuration.tmpl`:
+
+```tmpl
+# Default shell configuration for all environments
+
+# History configuration
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_VERIFY
+setopt INC_APPEND_HISTORY
+
+# Directory navigation
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
+
+```
+
+`/dotfiles/chezmoitemplates/shared/linux/shell-configuration.tmpl`:
+
+```tmpl
+# Shared Linux configuration
+
+# Set up NVM if installed
+export NVM_DIR="$HOME/.nvm"
+source_if_exists "$NVM_DIR/nvm.sh"
+
+# Enable FzF (Linux installation)
+source_if_exists "$HOME/.fzf.zsh"
+
+# Enable ZSH plugins if installed
+source_if_exists "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source_if_exists "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/zsh/aliases.tmpl`:
+
+```tmpl
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/zsh/plugins.tmpl`:
+
+```tmpl
+# macOS-specific plugins
+plugins+=(brew macos)
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/zsh/functions.tmpl`:
+
+```tmpl
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}
+
+# pbcopy_files function (macOS specific)
+pbcopy_files() {
+  setopt nullglob  # Allow wildcards with no matches
+
+  local save_to_folder=false
+  local output_folder="pbcopy_files_output"
+  local target_path=""
+  local processed_count=0
+  local root_folder=$(basename "$(pwd)")
+  export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+  # Parse command line options
+  while getopts ":s" opt; do
+    case ${opt} in
+      s ) save_to_folder=true ;;
+      \? ) echo "\033[1;31mError: Invalid option: -$OPTARG\033[0m" >&2; return 1 ;;
+    esac
+  done
+  shift $((OPTIND -1))
+
+  # Check if a target path is provided
+  if [ $# -eq 0 ]; then
+    echo "\033[1;31mError: No target path provided.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  target_path="$1"
+  local base_path=$(pwd)  # Get the current working directory (root path)
+
+  # Function to determine the correct comment style based on file extension
+  get_comment_style() {
+    local filename="$1"
+    case "$filename" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) echo "//" ;;
+      *.css|*.html) echo "/* */" ;;
+      *.lua) echo "--" ;;
+      *.py|*.rb|*.sh|*.zsh|*.bash|*.ksh) echo "#" ;;
+      *.c|*.cpp|*.h|*.hpp|*.java|*.go|*.swift) echo "//" ;;
+      *) echo "/* */" ;;
+    esac
+  }
+
+  # Function to sanitize file path for use as a filename
+  sanitize_path() {
+    echo "$1" | sed "s|^\./||" | sed "s|/|>|g"
+  }
+
+  # Process an individual file
+  process_file() {
+    local file="$1"
+    local comment_style=$(get_comment_style "$file")
+    local relative_path="${file#$base_path/}"
+
+    # Determine if it's a block comment style (like /* ... */)
+    if [[ "$comment_style" == "/* */" ]]; then
+      local content="/* Current file: $relative_path */\n$(cat "$file")"
+    else
+      local content="$comment_style Current file: $relative_path\n$(cat "$file")"
+    fi
+
+    if $save_to_folder; then
+      local sanitized_path="${root_folder}>$(sanitize_path "$relative_path")"
+      echo -e "$content" > "$output_folder/$sanitized_path"
+    else
+      echo -e "$content" | pbcopy
+    fi
+
+    ((processed_count++))
+  }
+
+  # Process a folder recursively
+  process_files() {
+    local dir="$1"
+
+    for file in "$dir"/*; do
+      if [ -f "$file" ]; then
+        local relative_path="${file#$base_path/}"
+        echo -n "Process $relative_path? (Enter/s/q): "
+        read -k 1 user_input
+        echo
+        case $user_input in
+          s|S) echo "Skipped." ;;
+          q|Q) echo "Quitting..."; return ;;
+          *) process_file "$file" ;;
+        esac
+      elif [ -d "$file" ]; then
+        process_files "$file"
+      fi
+    done
+  }
+
+  # Create or clear output folder if saving to folder
+  if $save_to_folder; then
+    if [ -d "$output_folder" ]; then
+      echo "Removing existing output folder..."
+      rm -rf "$output_folder"
+    fi
+    mkdir -p "$output_folder"
+    echo "Created fresh output folder: $output_folder"
+  fi
+
+  # Process the target path
+  if [ -f "$target_path" ]; then
+    process_file "$target_path"
+  elif [ -d "$target_path" ]; then
+    process_files "$target_path"
+  else
+    echo "\033[1;31mError: $target_path is not a valid file or folder.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  # Print summary
+  if $save_to_folder; then
+    echo "Saved $processed_count file(s) to $output_folder/"
+  else
+    echo "Copied $processed_count file(s) to clipboard."
+  fi
+}
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/zsh/configuration.tmpl`:
+
+```tmpl
+# macOS-specific configuration
+
+# Homebrew configuration
+export HOMEBREW_PREFIX="{{ .chezmoi.homeDir }}/homebrew"
+if [ -d "/opt/homebrew" ]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [ -d "/usr/local" ]; then
+  export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Enable FzF (macOS Homebrew installation)
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+fi
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+fi
+
+# Enable NVM (macOS Homebrew installation)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# Enable ZSH Autosuggestions plugin via Homebrew
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Google Cloud SDK setup (macOS specific)
+source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
+source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
+
+# Display welcome message
+echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/defaults.sh.tmpl`:
+
+```tmpl
+#!/bin/bash
+# macOS system defaults setup
+
+echo "🔧 Configuring macOS system defaults..."
+
+# Ask for the administrator password upfront
+sudo -v
+
+# Keep-alive: update existing `sudo` time stamp until this script has finished
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+###############################################################################
+# General UI/UX                                                               #
+###############################################################################
+
+# Set computer name (as done via System Preferences → Sharing)
+sudo scutil --set ComputerName "MacBook"
+sudo scutil --set HostName "MacBook"
+sudo scutil --set LocalHostName "MacBook"
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "MacBook"
+
+# Disable the sound effects on boot
+sudo nvram SystemAudioVolume=" "
+
+# Always show scrollbars
+defaults write NSGlobalDomain AppleShowScrollBars -string "Always"
+
+# Save to disk (not to iCloud) by default
+defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+
+# Automatically quit printer app once the print jobs complete
+defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
+
+###############################################################################
+# Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
+###############################################################################
+
+# Trackpad: enable tap to click for this user and for the login screen
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Trackpad: map bottom right corner to right-click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadCornerSecondaryClick -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.trackpadCornerClickBehavior -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+
+# Set a blazingly fast keyboard repeat rate
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# Set language and text formats
+defaults write NSGlobalDomain AppleLanguages -array "en"
+defaults write NSGlobalDomain AppleLocale -string "en_US@currency=USD"
+defaults write NSGlobalDomain AppleMeasurementUnits -string "Inches"
+defaults write NSGlobalDomain AppleMetricUnits -bool false
+
+###############################################################################
+# Finder                                                                      #
+###############################################################################
+
+# Show hidden files by default
+defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# Show all filename extensions
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+# Show status bar
+defaults write com.apple.finder ShowStatusBar -bool true
+
+# Show path bar
+defaults write com.apple.finder ShowPathbar -bool true
+
+# Display full POSIX path as Finder window title
+defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
+
+# Keep folders on top when sorting by name
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+
+# When performing a search, search the current folder by default
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+
+# Disable the warning when changing a file extension
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+# Avoid creating .DS_Store files on network or USB volumes
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+
+# Use list view in all Finder windows by default
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+
+##############################################################################
+# Dock, Dashboard, and hot corners                                            #
+###############################################################################
+
+# Set the icon size of Dock items
+defaults write com.apple.dock tilesize -int 46
+
+# Change minimize/maximize window effect
+defaults write com.apple.dock mineffect -string "scale"
+
+# Minimize windows into their application's icon
+defaults write com.apple.dock minimize-to-application -bool true
+
+# Show indicator lights for open applications in the Dock
+defaults write com.apple.dock show-process-indicators -bool true
+
+# Don't automatically rearrange Spaces based on most recent use
+defaults write com.apple.dock mru-spaces -bool false
+
+# Remove the auto-hiding Dock delay
+defaults write com.apple.dock autohide-delay -float 0
+
+# Remove the animation when hiding/showing the Dock
+defaults write com.apple.dock autohide-time-modifier -float 0
+
+# Automatically hide and show the Dock
+defaults write com.apple.dock autohide -bool true
+
+# Make Dock icons of hidden applications translucent
+defaults write com.apple.dock showhidden -bool true
+
+###############################################################################
+# Terminal & iTerm 2                                                          #
+###############################################################################
+
+# Only use UTF-8 in Terminal.app
+defaults write com.apple.terminal StringEncodings -array 4
+
+# Install custom keyboard shortcuts
+if [ -f "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml" ]; then
+  echo "🔄 Importing keyboard shortcuts..."
+  defaults import com.apple.symbolichotkeys "$ENVIRONMENTS_DIR/macos/macos-keyboard-shortcuts.xml"
+fi
+
+# Import Raycast preferences if available
+if [ -f "$ENVIRONMENTS_DIR/macos/Raycast.rayconfig" ] && [ -d "/Applications/Raycast.app" ]; then
+  echo "🔄 Raycast config found. Please import manually from: $ENVIRONMENTS_DIR/macos/Raycast.rayconfig"
+fi
+
+###############################################################################
+# Kill affected applications                                                  #
+###############################################################################
+
+for app in "Activity Monitor" "Address Book" "Calendar" "Contacts" "cfprefsd" \
+  "Dock" "Finder" "Mail" "Messages" "Photos" "Safari" "SystemUIServer" \
+  "Terminal" "iCal"; do
+  killall "${app}" &> /dev/null
+done
+
+echo "✅ macOS defaults configured. Some changes require a logout/restart to take effect."#
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/packages.tmpl`:
+
+```tmpl
+#!/bin/bash
+# macOS-specific dependencies installer
+
+echo "🍎 Installing macOS-specific dependencies..."
+
+# Check if Homebrew is installed
+if ! command -v brew &>/dev/null; then
+  echo "🍺 Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  
+  # Add Homebrew to PATH based on architecture
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    # Apple Silicon
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  else
+    # Intel
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+else
+  echo "✅ Homebrew already installed"
+fi
+
+# Install essential command line tools
+echo "📦 Installing CLI tools..."
+brew install \
+  git \
+  neovim \
+  tmux \
+  ripgrep \
+  fzf \
+  bat \
+  exa \
+  fd \
+  jq \
+  starship \
+  zsh
+
+# Install Oh My Zsh if not already installed
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  echo "🔧 Installing Oh My Zsh..."
+  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
+
+# Install ZSH plugins
+brew install zsh-autosuggestions zsh-syntax-highlighting
+
+# Install Node.js environment
+echo "📦 Installing Node.js environment..."
+brew install nvm
+mkdir -p "$HOME/.nvm"
+
+# Install development applications
+echo "📦 Installing development applications..."
+brew install --cask \
+  visual-studio-code \
+  wezterm \
+  iterm2 \
+  raycast
+
+# Install fonts
+echo "📦 Installing fonts..."
+brew tap homebrew/cask-fonts
+brew install --cask font-victor-mono-nerd-font
+
+echo "✅ macOS dependencies installed successfully!"
+
+```
+
+`/dotfiles/chezmoitemplates/environments/macos/keyboard-shortcuts.xml.tmpl`:
+
+```tmpl
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppleSymbolicHotKeys</key>
+	<dict>
+		<key>15</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>16</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>164</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>65535</integer>
+					<integer>65535</integer>
+					<integer>0</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>17</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>18</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>19</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>190</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>113</integer>
+					<integer>12</integer>
+					<integer>8388608</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>20</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>21</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>22</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>23</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>24</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>25</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>26</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>60</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>262144</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>61</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>64</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1048576</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>65</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>79</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>80</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>81</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>82</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
+
+```
+
+`/dotfiles/chezmoitemplates/macos/shell-aliases.tmpl`:
+
+```tmpl
+# macOS-specific aliases
+
+# macOS system aliases
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias finder="open -a Finder ."
+alias cpath="pwd | tr -d '\n' | pbcopy && echo 'Path copied to clipboard'"
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl"
+
+# Homebrew shortcuts
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewcheck="brew doctor"
+alias bi="brew install"
+alias bci="brew install --cask"
+
+# Development tools
+if command -v code &> /dev/null; then
+  alias c="code ."
+fi
+
+# Enhanced ls commands using exa if available
+if command -v exa &> /dev/null; then
+  alias ls="exa --icons"
+  alias ll="exa --icons -la"
+  alias lt="exa --icons -T -L 2"
+fi
+
+# Quick edit common config files
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias nvimconfig="chezmoi edit ~/.config/nvim/init.lua"
+
+# Git shortcuts
+alias gs="git status"
+alias gl="git log --oneline -10"
+alias gd="git diff"
+alias gc="git commit -m"
+alias ga="git add"
+alias gp="git push"
+
+# Open applications
+alias chrome="open -a 'Google Chrome'"
+alias safari="open -a Safari"
+alias preview="open -a Preview"
+
+# Python alias
+alias pip="python3 -m pip"
+
+```
+
+`/dotfiles/chezmoitemplates/macos/shell-configuration.tmpl`:
+
+```tmpl
+# macOS-specific configuration
+
+# Homebrew configuration
+export HOMEBREW_PREFIX="{{ .chezmoi.homeDir }}/homebrew"
+if [ -d "/opt/homebrew" ]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [ -d "/usr/local" ]; then
+  export HOMEBREW_PREFIX="/usr/local"
+fi
+
+# Enable FzF (macOS Homebrew installation)
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+fi
+if [ -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+fi
+
+# Enable NVM (macOS Homebrew installation)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+
+# Enable ZSH Autosuggestions plugin via Homebrew
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Enable ZSH Syntax Highlighting plugin via Homebrew (should load last)
+source_if_exists "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# Google Cloud SDK setup (macOS specific)
+source_if_exists "$HOME/google-cloud-sdk/path.zsh.inc"
+source_if_exists "$HOME/google-cloud-sdk/completion.zsh.inc"
+
+# Display welcome message
+echo "🍎 macOS Environment - $(sw_vers -productName) $(sw_vers -productVersion)"
+
+```
+
+`/dotfiles/chezmoitemplates/macos/shell-functions.tmpl`:
+
+```tmpl
+# macOS-specific functions
+
+# Show macOS system info
+macos_info() {
+  echo "🍎 macOS System Information:"
+  echo "--------------------------------------"
+  echo "🖥️  $(sw_vers -productName) $(sw_vers -productVersion) (Build $(sw_vers -buildVersion))"
+  echo "💻 $(sysctl -n machdep.cpu.brand_string)"
+  echo "🧠 RAM: $(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')"
+  echo "💾 Disk: $(df -h / | tail -1 | awk '{print $3 " used of " $2 " total"}')"
+  echo "🔋 Battery: $(pmset -g batt | grep -o '[0-9]*%')"
+  echo "--------------------------------------"
+}
+
+# pbcopy_files function (macOS specific)
+pbcopy_files() {
+  setopt nullglob  # Allow wildcards with no matches
+
+  local save_to_folder=false
+  local output_folder="pbcopy_files_output"
+  local target_path=""
+  local processed_count=0
+  local root_folder=$(basename "$(pwd)")
+  export PATH=$PATH:/bin:/usr/bin:/usr/local/bin
+
+  # Parse command line options
+  while getopts ":s" opt; do
+    case ${opt} in
+      s ) save_to_folder=true ;;
+      \? ) echo "\033[1;31mError: Invalid option: -$OPTARG\033[0m" >&2; return 1 ;;
+    esac
+  done
+  shift $((OPTIND -1))
+
+  # Check if a target path is provided
+  if [ $# -eq 0 ]; then
+    echo "\033[1;31mError: No target path provided.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  target_path="$1"
+  local base_path=$(pwd)  # Get the current working directory (root path)
+
+  # Function to determine the correct comment style based on file extension
+  get_comment_style() {
+    local filename="$1"
+    case "$filename" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) echo "//" ;;
+      *.css|*.html) echo "/* */" ;;
+      *.lua) echo "--" ;;
+      *.py|*.rb|*.sh|*.zsh|*.bash|*.ksh) echo "#" ;;
+      *.c|*.cpp|*.h|*.hpp|*.java|*.go|*.swift) echo "//" ;;
+      *) echo "/* */" ;;
+    esac
+  }
+
+  # Function to sanitize file path for use as a filename
+  sanitize_path() {
+    echo "$1" | sed "s|^\./||" | sed "s|/|>|g"
+  }
+
+  # Process an individual file
+  process_file() {
+    local file="$1"
+    local comment_style=$(get_comment_style "$file")
+    local relative_path="${file#$base_path/}"
+
+    # Determine if it's a block comment style (like /* ... */)
+    if [[ "$comment_style" == "/* */" ]]; then
+      local content="/* Current file: $relative_path */\n$(cat "$file")"
+    else
+      local content="$comment_style Current file: $relative_path\n$(cat "$file")"
+    fi
+
+    if $save_to_folder; then
+      local sanitized_path="${root_folder}>$(sanitize_path "$relative_path")"
+      echo -e "$content" > "$output_folder/$sanitized_path"
+    else
+      echo -e "$content" | pbcopy
+    fi
+
+    ((processed_count++))
+  }
+
+  # Process a folder recursively
+  process_files() {
+    local dir="$1"
+
+    for file in "$dir"/*; do
+      if [ -f "$file" ]; then
+        local relative_path="${file#$base_path/}"
+        echo -n "Process $relative_path? (Enter/s/q): "
+        read -k 1 user_input
+        echo
+        case $user_input in
+          s|S) echo "Skipped." ;;
+          q|Q) echo "Quitting..."; return ;;
+          *) process_file "$file" ;;
+        esac
+      elif [ -d "$file" ]; then
+        process_files "$file"
+      fi
+    done
+  }
+
+  # Create or clear output folder if saving to folder
+  if $save_to_folder; then
+    if [ -d "$output_folder" ]; then
+      echo "Removing existing output folder..."
+      rm -rf "$output_folder"
+    fi
+    mkdir -p "$output_folder"
+    echo "Created fresh output folder: $output_folder"
+  fi
+
+  # Process the target path
+  if [ -f "$target_path" ]; then
+    process_file "$target_path"
+  elif [ -d "$target_path" ]; then
+    process_files "$target_path"
+  else
+    echo "\033[1;31mError: $target_path is not a valid file or folder.\033[0m"
+    echo "Usage: pbcopy_files [-s] /path/to/file_or_folder"
+    return 1
+  fi
+
+  # Print summary
+  if $save_to_folder; then
+    echo "Saved $processed_count file(s) to $output_folder/"
+  else
+    echo "Copied $processed_count file(s) to clipboard."
+  fi
+}
+
+```
+
+`/dotfiles/chezmoitemplates/macos/shell-plugins.tmpl`:
+
+```tmpl
+# macOS-specific plugins
+plugins+=(brew macos)
+
+```
+
+`/dotfiles/chezmoitemplates/macos/keyboard-shortcuts.xml.tmpl`:
+
+```tmpl
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppleSymbolicHotKeys</key>
+	<dict>
+		<key>15</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>16</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>164</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>65535</integer>
+					<integer>65535</integer>
+					<integer>0</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>17</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>18</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>19</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>190</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>113</integer>
+					<integer>12</integer>
+					<integer>8388608</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>20</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>21</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>22</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>23</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>24</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>25</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>26</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+		</dict>
+		<key>60</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>262144</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>61</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>64</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1048576</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>65</key>
+		<dict>
+			<key>enabled</key>
+			<false/>
+			<key>value</key>
+			<dict>
+				<key>parameters</key>
+				<array>
+					<integer>32</integer>
+					<integer>49</integer>
+					<integer>1572864</integer>
+				</array>
+				<key>type</key>
+				<string>standard</string>
+			</dict>
+		</dict>
+		<key>79</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>80</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>81</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+		<key>82</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
+
+```
+
+`/dotfiles/chezmoitemplates/linux/debian/shell-plugins.tmpl`:
+
+```tmpl
+debian
+
+```
+
+`/dotfiles/chezmoitemplates/linux/debian/shell-aliases.tmpl`:
+
+```tmpl
+# Debian/Ubuntu specific aliases
+alias apt-update="sudo apt-get update && sudo apt-get upgrade -y"
+alias apt-install="sudo apt-get install -y"
+alias apt-search="apt-cache search"
 
 ```
