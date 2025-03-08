@@ -1,0 +1,8 @@
+# Web development container configuration
+[data]
+    name = "{{ .name | default "developer" }}"
+    email = "{{ .email | default "v.jensentorp@gmail.com" }}"
+    
+    # Environment type
+    hostEnvironment = "container-web-dev"
+    isContainer = true

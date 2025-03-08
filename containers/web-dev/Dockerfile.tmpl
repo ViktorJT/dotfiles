@@ -1,0 +1,22 @@
+FROM ubuntu:22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zsh \
+    neovim \
+    tmux \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up user
+RUN useradd -m -s /bin/zsh {{ .name | default "developer" }}
+USER {{ .name | default "developer" }}
+WORKDIR /home/{{ .name | default "developer" }}
+
+# Initialize chezmoi with the container configuration
+RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- init --source=https://github.com/ViktorJT/dotfiles.git/containers/web-dev --apply
+
+CMD ["zsh"]

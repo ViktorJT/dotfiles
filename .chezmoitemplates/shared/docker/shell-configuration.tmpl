@@ -1,0 +1,11 @@
+# Shared Docker container configuration
+
+# Set Docker environment variables
+export DOCKER_CONTAINER=true
+
+# Reduce history size for containers
+HISTSIZE=1000
+SAVEHIST=1000
+
+# Display a note about being in a container
+echo "Note: Running in a Docker container environment"

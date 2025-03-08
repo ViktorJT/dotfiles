@@ -1,0 +1,14 @@
+version: '3'
+services:
+  web-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-dev
+    volumes:
+      - ./workspace:/home/{{ .name | default "developer" }}/workspace
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+    tty: true
+    stdin_open: true

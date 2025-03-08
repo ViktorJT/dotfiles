@@ -1,0 +1,8 @@
+# Data science container configuration
+[data]
+    name = "{{ .name | default "researcher" }}"
+    email = "{{ .email | default "v.jensentorp@gmail.com" }}"
+    
+    # Environment type
+    hostEnvironment = "container-data-science"
+    isContainer = true

@@ -1,0 +1,14 @@
+version: '3'
+services:
+  data-science:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data-science
+    volumes:
+      - ./workspace:/home/{{ .name | default "researcher" }}/workspace
+      - ./data:/home/{{ .name | default "researcher" }}/data
+    ports:
+      - "8888:8888"  # Jupyter notebook
+    tty: true
+    stdin_open: true

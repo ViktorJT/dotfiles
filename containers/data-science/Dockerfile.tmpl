@@ -1,0 +1,23 @@
+FROM python:3.8
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zsh \
+    neovim \
+    tmux \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip install numpy pandas matplotlib scikit-learn jupyter
+
+# Set up user
+RUN useradd -m -s /bin/zsh {{ .name | default "researcher" }}
+USER {{ .name | default "researcher" }}
+WORKDIR /home/{{ .name | default "researcher" }}
+
+# Initialize chezmoi with the container configuration
+RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- init --source=https://github.com/ViktorJT/dotfiles.git/containers/data-science --apply
+
+CMD ["zsh"]
