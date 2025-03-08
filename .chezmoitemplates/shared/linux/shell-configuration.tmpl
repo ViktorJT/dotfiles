@@ -1,0 +1,12 @@
+# Shared Linux configuration
+
+# Set up NVM if installed
+export NVM_DIR="$HOME/.nvm"
+source_if_exists "$NVM_DIR/nvm.sh"
+
+# Enable FzF (Linux installation)
+source_if_exists "$HOME/.fzf.zsh"
+
+# Enable ZSH plugins if installed
+source_if_exists "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source_if_exists "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"

@@ -19,10 +19,10 @@
     {{ end }}
     
     # Feature flags (can be overridden with environment variables)
-    enableDevTools = {{ env "ENABLE_DEV_TOOLS" | default "true" | toBool }}
-    enableDocker = {{ env "ENABLE_DOCKER" | default "true" | toBool }}
-    enableNeovim = {{ env "ENABLE_NEOVIM" | default "true" | toBool }}
-    enableWezterm = {{ env "ENABLE_WEZTERM" | default "true" | toBool }}
+    enableDevTools = {{ env "ENABLE_DEV_TOOLS" | default "true" }}
+    enableDocker = {{ env "ENABLE_DOCKER" | default "true" }}
+    enableNeovim = {{ env "ENABLE_NEOVIM" | default "true" }}
+    enableWezterm = {{ env "ENABLE_WEZTERM" | default "true" }}
 
     # Hostname for machine-specific configurations
     hostname = {{ .chezmoi.hostname | quote }}
