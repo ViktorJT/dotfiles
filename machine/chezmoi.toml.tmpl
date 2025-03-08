@@ -1,0 +1,48 @@
+# machine/.chezmoi.toml.tmpl
+[data]
+    # User information
+    name = "Viktor"
+    email = "v.jensentorp@gmail.com"
+    
+    # Environment detection for host
+    {{- if eq .chezmoi.os "darwin" }}
+    hostEnvironment = "macos"
+    {{- else if eq .chezmoi.os "linux" }}
+        {{- if (and (hasKey .chezmoi.osRelease "id") (eq .chezmoi.osRelease.id "debian")) }}
+    hostEnvironment = "linux-debian"
+        {{- else if (and (hasKey .chezmoi.osRelease "id") (eq .chezmoi.osRelease.id "arch")) }}
+    hostEnvironment = "linux-arch"
+        {{- else }}
+    hostEnvironment = "linux-generic"
+        {{- end }}
+    {{- else }}
+    hostEnvironment = "unknown"
+    {{- end }}
+    
+    # Feature flags (can be overridden with environment variables)
+    {{- if env "ENABLE_DEV_TOOLS" | default "true" | eq "true" }}
+    enableDevTools = true
+    {{- else }}
+    enableDevTools = false
+    {{- end }}
+    
+    {{- if env "ENABLE_DOCKER" | default "true" | eq "true" }}
+    enableDocker = true
+    {{- else }}
+    enableDocker = false
+    {{- end }}
+    
+    {{- if env "ENABLE_NEOVIM" | default "true" | eq "true" }}
+    enableNeovim = true
+    {{- else }}
+    enableNeovim = false
+    {{- end }}
+    
+    {{- if env "ENABLE_WEZTERM" | default "true" | eq "true" }}
+    enableWezterm = true
+    {{- else }}
+    enableWezterm = false
+    {{- end }}
+
+    # Hostname for machine-specific configurations
+    hostname = {{ .chezmoi.hostname | quote }}
